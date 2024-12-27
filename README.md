@@ -3,5 +3,4 @@ This is our App development project based on creating a web application for book
 removed testing
 hello
 hello from glenden
-asdfasdgklasdjgl
-# hallo again
+hello
