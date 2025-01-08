@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-center">Rewards List</h1>
+<a href="{{ url_for('create_rewards') }}" class="btn btn-primary mb-3">Add New Reward</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Points Required</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for reward in rewards %}
+        <tr>
+            <td>{{ reward.id }}</td>
+            <td>{{ reward.name }}</td>
+            <td>{{ reward.points_required }}</td>
+            <td>{{ reward.description }}</td>
+            <td>
+                <a href="{{ url_for('update_rewards', id=reward.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('delete_rewards', id=reward.id) }}" class="btn btn-danger btn-sm">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
