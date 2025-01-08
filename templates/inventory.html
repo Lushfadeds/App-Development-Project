@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<main>
+  <aside>
+            <h2>Categories</h2>
+            <ul>
+                <li><a href="/inventory?filter=low_stock">Low Stock</a></li>
+                <li><a href="/inventory?filter=in_stock">In Stock</a></li>
+                <li><a href="/inventory?filter=out_of_stock">Out of Stock</a></li>
+            </ul>
+        </aside>
+        <section>
+            <div class="search-bar">
+                <form method="get" action="/inventory">
+                    <input type="text" name="search" placeholder="Search for items">
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+            <div class="inventory-grid">
+                {% for item in items %}
+                <div class="inventory-item {% if item.stock < 10 %}low-stock{% endif %}">
+                    <h3>{{ item.name }}</h3>
+                    <p>Stock: {{ item.stock }}</p>
+                    <a href="/edit/{{ item.id }}">Edit</a>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+</main>
+{% endblock %}
