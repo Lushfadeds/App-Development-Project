@@ -15,7 +15,7 @@ class User:
         if not name.strip():
             raise ValueError("Name cannot be empty.")
         self.__name = name
-
+c
     # Getter for email
     def get_email(self):
         return self.__email
