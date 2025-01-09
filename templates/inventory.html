@@ -41,6 +41,10 @@
 
         <!-- Main Content -->
         <section class="inventory-section">
+            <div class="action-bar">
+                <a href="/inventory/new" class="add-item-btn">Add New Item</a>
+            </div>
+
             <div class="search-bar">
                 <form method="get" action="/inventory">
                     <input type="text" name="search" placeholder="Search for items">
@@ -54,10 +58,12 @@
                 {% else %}
                     {% for item in items %}
                     <div class="inventory-item {% if item.stock < 10 %}low-stock{% endif %}">
+                        <img src="{{ url_for('static', filename='uploads/' ~ item.picture) }}" alt="{{ item.name }}" class="item-image">
                         <h3>{{ item.name }}</h3>
                         <div class="stock-info">
                             <p>Stock QTY: {{ item.stock }}</p>
                         </div>
+
                         <a href="/edit/{{ item.id }}" class="edit-btn">Edit</a>
                     </div>
                     {% endfor %}

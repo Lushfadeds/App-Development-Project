@@ -1,8 +1,18 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
+import os
+from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
+from Inventory import Inventory
 import sqlite3
 
 app = Flask(__name__)
+inventory_manager = Inventory()
+items = []
+
+Allowed_Extensions = {'png','jpg','jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.',1)[1].lower() in Allowed_Extensions
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -100,28 +110,15 @@ def rewards_page():
     return render_template('rewards.html', rewards=rewards, user_points=user_points, message=message)
 
 
-@app.route("/inventory", methods=["GET", "POST"])
+@app.route("/inventory", methods=["GET"])
 def inventory_page():
     category = request.args.get("category", "")
-    query = request.args.get("search", "")
+    search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
-
-    # Filter and search functionality
-    all_items = inventory
-    if query:
-        all_items = [item for item in all_items if query.lower() in item["name"].lower()]
-    elif filter_option == "low_stock":
-        all_items = [item for item in all_items if item["stock"] < 10]
-    elif filter_option == "in_stock":
-        all_items = [item for item in all_items if item["stock"] > 0]
-    elif filter_option == "out_of_stock":
-        all_items = [item for item in all_items if item["stock"] == 0]
-
-    if category:
-        all_items = [item for item in all_items if item["category"] == category]
+    inventory_items = inventory_manager.get_items(search_query, filter_option, category)
 
 
-    return render_template("inventory.html", items=all_items)
+    return render_template("inventory.html", items=inventory_items)
 
 
 @app.route("/edit/<int:item_id>", methods=["GET", "POST"])
@@ -139,6 +136,40 @@ def edit_item(item_id):
 
     return render_template("edit_item.html", item=item)
 
+@app.route('/inventory/new', methods=['GET', 'POST'])
+def add_new_item():
+    if request.method == 'POST':
+        name = request.form['name']
+        stock = int(request.form['stock'])
+        category = request.form['category']
+        expiration_date = request.form['expiration_date']
+        remarks = request.form['remarks']
+        picture = request.files['picture']
+
+        # Validate file upload
+        if picture and allowed_file(picture.filename):
+            filename = secure_filename(picture.filename)
+            picture.save(os.path.join('static/uploads', filename))
+        else:
+            flash('Invalid file format. Only .jpg, .jpeg, .png allowed.')
+            return redirect(request.url)
+
+        # Add item to inventory
+        new_item = {
+            "id": len(items) + 1,
+            "name": name,
+            "stock": stock,
+            "category": category,
+            "expiration_date": expiration_date,
+            "remarks": remarks,
+            "picture": filename
+        }
+        items.append(new_item)
+
+        flash('Item successfully added!')
+        return redirect(url_for('inventory'))
+
+    return render_template('add_item.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
