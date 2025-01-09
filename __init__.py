@@ -75,14 +75,13 @@ rewards = [
 user_points = 8888
 
 inventory = [
-    {"id": 1, "name": "Candy", "stock": 20},
-    {"id": 2, "name": "Cookies", "stock": 0},
-    {"id": 3, "name": "Biscuits", "stock": 10},
-    {"id": 4, "name": "Juice", "stock": 15},
-    {"id": 5, "name": "Decorations", "stock": 5},
-    {"id": 6, "name": "Plates", "stock": 30}
-]
-
+        {"id": 1, "name": "Candy", "stock": 20, "category": "snacks" },
+        {"id": 2, "name": "Cookies", "stock": 0, "category": "snacks"},
+        {"id": 3, "name": "Biscuits", "stock": 10, "category": "biscuits"},
+        {"id": 4, "name": "Juice", "stock": 15, "category": "beverages"},
+        {"id": 5, "name": "Decorations", "stock": 5, "category": "decorations"},
+        {"id": 6, "name": "Plates", "stock": 30, "category": "supplies"}
+        ]
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
@@ -103,21 +102,26 @@ def rewards_page():
 
 @app.route("/inventory", methods=["GET", "POST"])
 def inventory_page():
+    category = request.args.get("category", "")
     query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
 
     # Filter and search functionality
-    filtered_inventory = inventory
+    all_items = inventory
     if query:
-        filtered_inventory = [item for item in inventory if query.lower() in item["name"].lower()]
+        all_items = [item for item in all_items if query.lower() in item["name"].lower()]
     elif filter_option == "low_stock":
-        filtered_inventory = [item for item in inventory if item["stock"] < 10]
+        all_items = [item for item in all_items if item["stock"] < 10]
     elif filter_option == "in_stock":
-        filtered_inventory = [item for item in inventory if item["stock"] > 0]
+        all_items = [item for item in all_items if item["stock"] > 0]
     elif filter_option == "out_of_stock":
-        filtered_inventory = [item for item in inventory if item["stock"] == 0]
+        all_items = [item for item in all_items if item["stock"] == 0]
 
-    return render_template("inventory.html", items=filtered_inventory)
+    if category:
+        all_items = [item for item in all_items if item["category"] == category]
+
+
+    return render_template("inventory.html", items=all_items)
 
 
 @app.route("/edit/<int:item_id>", methods=["GET", "POST"])
