@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<link href="{{ url_for('static', filename='Form.css') }}" rel="stylesheet">
+<main class="form-page">
+    <h1>New Item</h1>
+    <form method="post" action="/inventory/new" class="add-item-form" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="name">Name*</label>
+            <input type="text" id="name" name="name" placeholder="Enter item name" required pattern="[A-Za-z ]+" title="Only alphabets and spaces allowed">
+        </div>
+        <div class="form-group">
+            <label for="stock">Stock QTY*</label>
+            <input type="number" id="stock" name="stock" placeholder="Enter stock quantity" required min="1">
+        </div>
+        <div class="form-group">
+            <label for="picture">Picture*</label>
+            <input type="file" id="picture" name="picture" accept=".jpg,.jpeg,.png" required>
+        </div>
+        <div class="form-group">
+            <label for="expiration_date">Expiration Date</label>
+            <input type="date" id="expiration_date" name="expiration_date">
+        </div>
+        <div class="form-group">
+            <label for="category">Category*</label>
+            <select id="category" name="category" required>
+                <option value="snacks">Traditional Snacks & Candy</option>
+                <option value="desserts">Desserts</option>
+                <option value="biscuits">Biscuits</option>
+                <option value="beverages">Beverages</option>
+                <option value="toys">Traditional Toys</option>
+                <option value="decorations">Decorations</option>
+                <option value="supplies">Catering Supplies</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="remarks">Remarks</label>
+            <textarea id="remarks" name="remarks" placeholder="Enter remarks"></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="button" onclick="window.history.back()">Cancel</button>
+            <button type="submit">Add</button>
+        </div>
+    </form>
+</main>
+{% endblock %}
