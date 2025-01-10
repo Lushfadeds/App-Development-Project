@@ -1,3 +1,5 @@
+from fileinput import filename
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 import os
 from werkzeug.utils import secure_filename
@@ -6,6 +8,7 @@ from Inventory import Inventory
 import sqlite3
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'static/Pictures'
 inventory_manager = Inventory()
 items = []
 
@@ -146,10 +149,12 @@ def add_new_item():
         remarks = request.form['remarks']
         picture = request.files['picture']
 
+
+
         # Validate file upload
         if picture and allowed_file(picture.filename):
             filename = secure_filename(picture.filename)
-            picture.save(os.path.join('static/uploads', filename))
+            picture.save(os.path.join('static', filename))
         else:
             flash('Invalid file format. Only .jpg, .jpeg, .png allowed.')
             return redirect(request.url)

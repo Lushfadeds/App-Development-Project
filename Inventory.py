@@ -1,14 +1,14 @@
 class Inventory:
-    count_id = 0
+    count_id = 6
 
     def __init__(self):
         self.items = [
-        {"id": 1, "name": "Candy", "stock": 20, "category": "snacks" },
-        {"id": 2, "name": "Cookies", "stock": 0, "category": "snacks"},
-        {"id": 3, "name": "Biscuits", "stock": 10, "category": "biscuits"},
-        {"id": 4, "name": "Juice", "stock": 15, "category": "beverages"},
-        {"id": 5, "name": "Decorations", "stock": 5, "category": "decorations"},
-        {"id": 6, "name": "Plates", "stock": 30, "category": "supplies"}
+        {"id": 1, "name": "Fruit Plus Orange", "stock": 20, "category": "snacks", "image_url": "Fruit_plus_orange.jpg" },
+        {"id": 2, "name": "Chocolate Chip", "stock": 0, "category": "snacks", "image_url": "chocolate_chip.jpg"},
+        {"id": 3, "name": "Tin Biscuits", "stock": 10, "category": "biscuits","image_url": "tin_biscuits.jpg"},
+        {"id": 4, "name": "Orange Juice", "stock": 15, "category": "beverages","image_url": "orange_juice.jpg"},
+        {"id": 5, "name": "Table Cloth", "stock": 5, "category": "decorations","image_url": "table_cloth.jpg"},
+        {"id": 6, "name": "Paper Plates", "stock": 30, "category": "supplies","image_url": "plates.jpg"}
         ]
 
     def get_items(self, search_query="", filter_option="", category=""):
@@ -29,14 +29,18 @@ class Inventory:
 
         return filtered_items
 
-    def add_item(self, name, quantity, price):
-        Inventory.count_id += 1
-        self.items.append({
-            "id": Inventory.count_id,
+    def add_item(self, name, stock, category, image_url="" ):
+        self.count_id += 1
+        new_item = ({
+            "id": self.count_id,
             "name": name,
-            "quantity": quantity,
-            "price": price
+            "stock": stock,
+            "category": category,
+            "image_url": image_url
         })
+
+        self.items.append(new_item)
+        return new_item
 
     def remove_item(self, item_id):
         self.items = [item for item in self.items if item['id'] != item_id]
