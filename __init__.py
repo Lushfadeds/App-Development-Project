@@ -19,7 +19,8 @@ def allowed_file(filename):
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_BINDS'] = {
-    'inventory': 'sqlite:///inventory.db'
+    'inventory': 'sqlite:///inventory.db',
+    'orders': 'sqlite:///orders.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -42,6 +43,39 @@ class InventoryItem(db.Model):
     stock = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     image_url = db.Column(db.String(200), nullable=True)  # Store the path to the uploaded image
+class Customer(db.Model):
+    __bind_key__ = 'orders'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    contact = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+
+
+class Order(db.Model):
+    __bind_key__ = 'orders'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(20), nullable=False)
+    time = db.Column(db.String(10), nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    comments = db.Column(db.Text, nullable=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    customer = db.relationship('Customer', backref=db.backref('orders', lazy=True))
+    total = db.Column(db.Float, nullable=False)
+
+    # Add the relationship to OrderItem
+    order_items = db.relationship('OrderItem', backref='order', lazy=True)
+
+class OrderItem(db.Model):
+    __bind_key__ = 'orders'
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    inventory_item_id = db.Column(db.Integer, nullable=False)  # Reference to InventoryItem
+    quantity = db.Column(db.Integer, nullable=False)
+    cost_per_item = db.Column(db.Float, nullable=False)
+    total_cost = db.Column(db.Float, nullable=False)
+
+    def get_inventory_item(self):
+        return InventoryItem.query.filter_by(id=self.inventory_item_id).first()
 
 # Create the database table
 with app.app_context():
@@ -68,6 +102,29 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
+    if not Order.query.first():  # Check if orders already exist
+        customer = Customer(name="Jane Doe", contact="+65 1234 5678", email="jane.doe@example.com")
+        db.session.add(customer)
+        db.session.commit()
+
+        order = Order(
+            date="2025-01-12",
+            time="14:30",
+            location="123 Main St, Singapore",
+            comments="No peanuts, please.",
+            customer_id=customer.id,
+            total=30.00
+        )
+        db.session.add(order)
+        db.session.commit()
+
+        order_items = [
+            OrderItem(order_id=order.id, inventory_item_id=1, quantity=2, cost_per_item=5.00, total_cost=10.00),
+            OrderItem(order_id=order.id, inventory_item_id=2, quantity=4, cost_per_item=5.00, total_cost=20.00),
+        ]
+        db.session.add_all(order_items)
+        db.session.commit()
+        print("Mock orders initialized in 'orders.db'.")
 @app.route('/')
 def home():
     return render_template('homepage.html')
@@ -234,5 +291,26 @@ def delete_inventory_item(item_id):
     flash(f"Item '{item.name}' has been deleted successfully!", "success")
     return redirect(url_for("inventory_page"))
 
+
+@app.route("/order_summary_staff/<int:order_id>", methods=["GET"])
+def order_summary_staff(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    items = [
+        {
+            "id": item.id,
+            "name": item.get_inventory_item().name if item.get_inventory_item() else "Unknown Item",
+            "quantity": item.quantity,
+            "cost_per_item": item.cost_per_item,
+            "total_cost": item.total_cost,
+        }
+        for item in order.order_items
+    ]
+
+    return render_template("order_summary_staff.html", order=order, items=items)
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+
+
