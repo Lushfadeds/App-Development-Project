@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+
+:root {
+    --primary-color: #D4B59E;
+    --secondary-color: #8C5A3F;
+    --background-color: #D4B59E;
+    --accent-color: #E7D3C5;
+    --text-color: #2B1D0E;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins'
+}
+
+nav {
+    background-color: var(--secondary-color);
+}
+
+.navbar-nav a {
+    color: var(--text-color);
+}
+
+.navbar-nav a:hover {
+    color: #F4E3D3
+}
+
+.navbar-nav button {
+    background: var(--text-color);
+    color: #F4E3D3;
+}
+
+.navbar-nav button:hover {
+    background: var(--primary-color);
+    color: var(--text-color)
+}
+
+.navbar-logo {
+    height: 80px;
+    width: auto;
+    border-radius: 50%;
+}
+
+.nav-custom {
+}
