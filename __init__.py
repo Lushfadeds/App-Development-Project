@@ -1,14 +1,14 @@
-from fileinput import filename
-
 from flask import Flask, render_template, request, redirect, url_for, flash
 import os
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from Inventory import Inventory
-import sqlite3
+
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'static/Pictures'
+app.secret_key = 'App_Dev'
+UPLOAD_FOLDER = 'static'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 inventory_manager = Inventory()
 items = []
 
@@ -18,6 +18,9 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in Allowed_Extensions
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
+app.config['SQLALCHEMY_BINDS'] = {
+    'inventory': 'sqlite:///inventory.db'
+}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -32,7 +35,38 @@ class Reward(db.Model):
 with app.app_context():
     db.create_all()
 
+class InventoryItem(db.Model):
+    __bind_key__ = 'inventory'  # Specify the database bind key
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    stock = db.Column(db.Integer, nullable=False)
+    category = db.Column(db.String(100), nullable=False)
+    image_url = db.Column(db.String(200), nullable=True)  # Store the path to the uploaded image
 
+# Create the database table
+with app.app_context():
+    db.create_all()
+
+    if not InventoryItem.query.first():
+        # Define initial items
+        initial_items = [
+        {"name": "Fruit Plus Orange", "stock": 20, "category": "snacks", "image_url": "Fruit_plus_orange.jpg"},
+        {"name": "Chocolate Chip", "stock": 0, "category": "snacks", "image_url": "chocolate_chip.jpg"},
+        {"name": "Tin Biscuits", "stock": 10, "category": "biscuits", "image_url": "tin_biscuits.jpg"},
+        {"name": "Orange Juice", "stock": 15, "category": "beverages", "image_url": "orange_juice.jpg"},
+        {"name": "Table Cloth", "stock": 5, "category": "decorations", "image_url": "table_cloth.jpg"},
+        {"name": "Paper Plates", "stock": 30, "category": "supplies", "image_url": "plates.jpg"}
+        ]
+
+        # Insert each item into the database
+        for item in initial_items:
+            db.session.add(InventoryItem(**item))
+
+        db.session.commit()  # Save the changes to the database
+        print("Initial inventory items have been migrated to the database.")
+
+    else:
+        print("Existing inventory found in the database.")
 
 @app.route('/')
 def home():
@@ -53,6 +87,7 @@ def create_rewards():
         new_reward = Reward(name=name, points_required=points_required, description=description)
         db.session.add(new_reward)
         db.session.commit()
+        flash("Reward created successfully!", "success")
         return redirect(url_for('rewards_index'))
     return render_template('create_rewards.html')
 
@@ -65,6 +100,7 @@ def update_rewards(id):
         reward.points_required = request.form['points_required']
         reward.description = request.form['description']
         db.session.commit()
+        flash("Reward updated successfully!", "success")
         return redirect(url_for('rewards_index'))
     return render_template('update_rewards.html', reward=reward)
 
@@ -74,6 +110,7 @@ def delete_rewards(id):
     reward = Reward.query.get_or_404(id)
     db.session.delete(reward)
     db.session.commit()
+    flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
 
 rewards = [
@@ -86,15 +123,6 @@ rewards = [
 ]
 
 user_points = 8888
-
-inventory = [
-        {"id": 1, "name": "Candy", "stock": 20, "category": "snacks" },
-        {"id": 2, "name": "Cookies", "stock": 0, "category": "snacks"},
-        {"id": 3, "name": "Biscuits", "stock": 10, "category": "biscuits"},
-        {"id": 4, "name": "Juice", "stock": 15, "category": "beverages"},
-        {"id": 5, "name": "Decorations", "stock": 5, "category": "decorations"},
-        {"id": 6, "name": "Plates", "stock": 30, "category": "supplies"}
-        ]
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
@@ -118,23 +146,32 @@ def inventory_page():
     category = request.args.get("category", "")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
-    inventory_items = inventory_manager.get_items(search_query, filter_option, category)
+    query = InventoryItem.query
 
+    if search_query:
+        query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
+    if category:
+        query = query.filter_by(category=category)
+    if filter_option == "low_stock":
+        query = query.filter(InventoryItem.stock < 10)
+    elif filter_option == "in_stock":
+        query = query.filter(InventoryItem.stock > 0)
+    elif filter_option == "out_of_stock":
+        query = query.filter(InventoryItem.stock == 0)
 
+    inventory_items = query.all()
     return render_template("inventory.html", items=inventory_items)
 
 
-@app.route("/edit/<int:item_id>", methods=["GET", "POST"])
-def edit_item(item_id):
-    item = next((i for i in inventory if i["id"] == item_id), None)
-    if not item:
-        return "Item not found", 404
+@app.route("/inventory/edit/<int:item_id>", methods=["GET", "POST"])
+def edit_inventory_item(item_id):
+    item = InventoryItem.query.get_or_404(item_id)
 
     if request.method == "POST":
-        # Update item stock
-        new_stock = request.form.get("stock")
-        if new_stock.isdigit():
-            item["stock"] = int(new_stock)
+        # Update item stock and details
+        item.stock = int(request.form['stock'])
+        db.session.commit()
+        flash('Item updated successfully!', 'success')
         return redirect(url_for("inventory_page"))
 
     return render_template("edit_item.html", item=item)
@@ -145,8 +182,6 @@ def add_new_item():
         name = request.form['name']
         stock = int(request.form['stock'])
         category = request.form['category']
-        expiration_date = request.form['expiration_date']
-        remarks = request.form['remarks']
         picture = request.files['picture']
 
 
@@ -154,25 +189,20 @@ def add_new_item():
         # Validate file upload
         if picture and allowed_file(picture.filename):
             filename = secure_filename(picture.filename)
-            picture.save(os.path.join('static', filename))
+            picture_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            picture.save(picture_path)
+            image_url = f'{filename}'
         else:
             flash('Invalid file format. Only .jpg, .jpeg, .png allowed.')
             return redirect(request.url)
 
         # Add item to inventory
-        new_item = {
-            "id": len(items) + 1,
-            "name": name,
-            "stock": stock,
-            "category": category,
-            "expiration_date": expiration_date,
-            "remarks": remarks,
-            "picture": filename
-        }
-        items.append(new_item)
+        new_item = InventoryItem(name=name, stock=stock, category=category, image_url=image_url)
+        db.session.add(new_item)
+        db.session.commit()
 
         flash('Item successfully added!')
-        return redirect(url_for('inventory'))
+        return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')
 

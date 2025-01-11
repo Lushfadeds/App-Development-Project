@@ -65,7 +65,7 @@
                         <div class="stock-info">
                             <p>Stock QTY: {{ item.stock }}</p>
                         </div>
-                        <a href="/edit/{{ item.id }}" class="edit-btn">Edit</a>
+                        <a href="{{ url_for('edit_inventory_item', item_id=item.id) }}" class="edit-btn">Edit</a>
                     </div>
                     {% endfor %}
                 {% endif %}
