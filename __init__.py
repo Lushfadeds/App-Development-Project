@@ -8,6 +8,7 @@ from Inventory import Inventory
 import sqlite3
 
 app = Flask(__name__)
+app.secret_key = 'App_Dev'
 app.config['UPLOAD_FOLDER'] = 'static/Pictures'
 inventory_manager = Inventory()
 items = []
@@ -53,6 +54,7 @@ def create_rewards():
         new_reward = Reward(name=name, points_required=points_required, description=description)
         db.session.add(new_reward)
         db.session.commit()
+        flash("Reward created successfully!", "success")
         return redirect(url_for('rewards_index'))
     return render_template('create_rewards.html')
 
@@ -65,6 +67,7 @@ def update_rewards(id):
         reward.points_required = request.form['points_required']
         reward.description = request.form['description']
         db.session.commit()
+        flash("Reward updated successfully!", "success")
         return redirect(url_for('rewards_index'))
     return render_template('update_rewards.html', reward=reward)
 
@@ -74,6 +77,7 @@ def delete_rewards(id):
     reward = Reward.query.get_or_404(id)
     db.session.delete(reward)
     db.session.commit()
+    flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
 
 rewards = [
