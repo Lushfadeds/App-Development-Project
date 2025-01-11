@@ -8,7 +8,7 @@ from Inventory import Inventory
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
 UPLOAD_FOLDER = 'static'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
 
@@ -177,6 +177,14 @@ def edit_inventory_item(item_id):
 
         # Update item stock and details
         item.stock = int(request.form['stock'])
+        if 'image_url' in request.files:
+            image = request.files['image_url']
+            if image and allowed_file(image.filename):
+                filename = secure_filename(image.filename)  # Sanitize filename
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image.save(image_path)  # Save the image to the static folder
+                item.image_url = f'{filename}'  # Update the item with the new image path
+
         db.session.commit()
         flash('Item updated successfully!', 'success')
         return redirect(url_for("inventory_page"))
