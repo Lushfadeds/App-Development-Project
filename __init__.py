@@ -168,6 +168,13 @@ def edit_inventory_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
 
     if request.method == "POST":
+        if "delete" in request.form:  # Check if the delete button was clicked
+            db.session.delete(item)
+            db.session.commit()
+            flash(f"Item '{item.name}' has been deleted successfully!", "success")
+            return redirect(url_for("inventory_page"))
+
+
         # Update item stock and details
         item.stock = int(request.form['stock'])
         db.session.commit()
@@ -205,6 +212,19 @@ def add_new_item():
         return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')
+
+@app.route("/inventory/delete/<int:item_id>", methods=["POST"])
+def delete_inventory_item(item_id):
+    # Fetch the item from the database
+    item = InventoryItem.query.get_or_404(item_id)
+
+    # Delete the item
+    db.session.delete(item)
+    db.session.commit()
+
+    # Flash a success message
+    flash(f"Item '{item.name}' has been deleted successfully!", "success")
+    return redirect(url_for("inventory_page"))
 
 if __name__ == '__main__':
     app.run(debug=True)

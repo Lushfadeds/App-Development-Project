@@ -1,40 +1,86 @@
+/* General Form Styling */
 .edit-item-container {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin: 20px 0;
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+
+.item-image {
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 .item-image img {
-    max-width: 150px;
+    width: 150px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
     border: 1px solid #ccc;
-    border-radius: 5px;
-    padding: 5px;
+    border-radius: 4px;
 }
 
 form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
 }
 
-form input[type="text"],
-form input[type="number"] {
-    width: 200px;
-    padding: 8px;
-    font-size: 14px;
+/* Buttons Container */
+.button-container {
+    display: flex; /* Enable flexbox layout */
+    margin-top: 20px; /* Add spacing above the buttons */
 }
 
-form button {
-    background-color: #007bff;
-    color: #fff;
+/* Button Styles */
+.delete-btn {
+    position: relative;
+    left: 80%;
+    bottom: 65px;
+    background-color: #dc3545;
+    color: white;
+    padding: 10px 20px;
     border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    flex: 0; /* Prevent flex growth/shrinking */
 }
 
-form button:hover {
+.delete-btn:hover {
+    background-color: #a71d2a;
+}
+
+.update-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 0; /* Prevent flex growth/shrinking */
+}
+
+.update-btn:hover {
     background-color: #0056b3;
 }
