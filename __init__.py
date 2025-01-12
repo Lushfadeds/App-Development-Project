@@ -4,7 +4,6 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from Inventory import Inventory
 
-
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
 UPLOAD_FOLDER = 'static'
@@ -12,10 +11,12 @@ app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
 
-Allowed_Extensions = {'png','jpg','jpeg'}
+Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
-def allowed_file(filename): #Split the file from the dot Eg: Image1.png
-    return '.' in filename and filename.rsplit('.',1)[1].lower() in Allowed_Extensions
+
+def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in Allowed_Extensions
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_BINDS'] = {
@@ -36,6 +37,7 @@ class Reward(db.Model):
 with app.app_context():
     db.create_all()
 
+
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'  # Specify the database bind key
     id = db.Column(db.Integer, primary_key=True)
@@ -43,6 +45,8 @@ class InventoryItem(db.Model):
     stock = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     image_url = db.Column(db.String(200), nullable=True)  # Store the path to the uploaded image
+
+
 class Customer(db.Model):
     __bind_key__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
@@ -65,6 +69,7 @@ class Order(db.Model):
     # Add the relationship to OrderItem
     order_items = db.relationship('OrderItem', backref='order', lazy=True)
 
+
 class OrderItem(db.Model):
     __bind_key__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
@@ -77,6 +82,7 @@ class OrderItem(db.Model):
     def get_inventory_item(self):
         return InventoryItem.query.filter_by(id=self.inventory_item_id).first()
 
+
 # Create the database table
 with app.app_context():
     db.create_all()
@@ -84,12 +90,12 @@ with app.app_context():
     if not InventoryItem.query.first():
         # Define initial items
         initial_items = [
-        {"name": "Fruit Plus Orange", "stock": 20, "category": "snacks", "image_url": "Fruit_plus_orange.jpg"},
-        {"name": "Chocolate Chip", "stock": 0, "category": "snacks", "image_url": "chocolate_chip.jpg"},
-        {"name": "Tin Biscuits", "stock": 10, "category": "biscuits", "image_url": "tin_biscuits.jpg"},
-        {"name": "Orange Juice", "stock": 15, "category": "beverages", "image_url": "orange_juice.jpg"},
-        {"name": "Table Cloth", "stock": 5, "category": "decorations", "image_url": "table_cloth.jpg"},
-        {"name": "Paper Plates", "stock": 30, "category": "supplies", "image_url": "plates.jpg"}
+            {"name": "Fruit Plus Orange", "stock": 20, "category": "snacks", "image_url": "Fruit_plus_orange.jpg"},
+            {"name": "Chocolate Chip", "stock": 0, "category": "snacks", "image_url": "chocolate_chip.jpg"},
+            {"name": "Tin Biscuits", "stock": 10, "category": "biscuits", "image_url": "tin_biscuits.jpg"},
+            {"name": "Orange Juice", "stock": 15, "category": "beverages", "image_url": "orange_juice.jpg"},
+            {"name": "Table Cloth", "stock": 5, "category": "decorations", "image_url": "table_cloth.jpg"},
+            {"name": "Paper Plates", "stock": 30, "category": "supplies", "image_url": "plates.jpg"}
         ]
 
         # Insert each item into the database
@@ -125,9 +131,12 @@ with app.app_context():
         db.session.add_all(order_items)
         db.session.commit()
         print("Mock orders initialized in 'orders.db'.")
+
+
 @app.route('/')
 def home():
     return render_template('homepage.html')
+
 
 @app.route('/rewards_index')
 def rewards_index():
@@ -170,6 +179,7 @@ def delete_rewards(id):
     flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
 
+
 rewards = [
     {"id": 1, "name": "$5 voucher", "points_required": 500, "description": None},
     {"id": 2, "name": "$15 voucher", "points_required": 1500, "description": None},
@@ -180,6 +190,7 @@ rewards = [
 ]
 
 user_points = 8888
+
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
@@ -231,7 +242,6 @@ def edit_inventory_item(item_id):
             flash(f"Item '{item.name}' has been deleted successfully!", "success")
             return redirect(url_for("inventory_page"))
 
-
         # Update item stock and details
         item.stock = int(request.form['stock'])
         if 'image_url' in request.files:
@@ -251,6 +261,7 @@ def edit_inventory_item(item_id):
 
     return render_template("edit_item.html", item=item)
 
+
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
     if request.method == 'POST':
@@ -258,8 +269,6 @@ def add_new_item():
         stock = int(request.form['stock'])
         category = request.form['category']
         picture = request.files['picture']
-
-
 
         # Validate file upload
         if picture and allowed_file(picture.filename):
@@ -280,6 +289,7 @@ def add_new_item():
         return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')
+
 
 @app.route("/inventory/delete/<int:item_id>", methods=["POST"])
 def delete_inventory_item(item_id):
@@ -315,5 +325,3 @@ def order_summary_staff(order_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
