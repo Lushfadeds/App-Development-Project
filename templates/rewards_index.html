@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='rewards_index.css') }}">
 <h1 class="text-center">Rewards List</h1>
-<a href="{{ url_for('create_rewards') }}" class="btn btn-primary mb-3">Add New Reward</a>
+<h2>Manage <b>Rewards</b><a href="{{ url_for('create_rewards') }}" class="btn btn-primary mb-3">Add New Reward</a></h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
