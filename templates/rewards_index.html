@@ -4,16 +4,22 @@
 <h1 class="text-center">Rewards List</h1>
 <h2>Manage <b>Rewards</b><a href="{{ url_for('create_rewards') }}" class="btn btn-primary mb-3">Add New Reward</a></h2>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
+
+   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     <div>
         {% for category, message in messages %}
-        <div class="alert alert-{{ category }}" role="alert">
+        <div class="alert alert-{{ category }} alert-dismissible" role="alert">
             {{ message }}
+            <button type="button" class="close" data-bs-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </div>
         {% endfor %}
     </div>
-    {% endif %}
+
+
+        {% endif %}
     {% endwith %}
 
 <table class="table table-striped">
@@ -34,7 +40,7 @@
             <td>{{ reward.points_required }}</td>
             <td>{{ reward.description }}</td>
             <td>
-                <a href="{{ url_for('update_rewards', id=reward.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                <a href="{{ url_for('update_rewards', id=reward.id) }}" class="btn btn-warning btn-sm custom-edit-button">Edit</a>
                 <a href="{{ url_for('delete_rewards', id=reward.id) }}" class="btn btn-danger btn-sm"
                    onclick="return confirm('Are you sure you want to delete this?')">Delete</a>
             </td>
