@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='create_rewards.css') }}">
 <h1 class="text-center">Update Reward</h1>
 <form method="POST" class="mt-4">
     <div class="mb-3">
@@ -14,6 +15,6 @@
         <label for="description" class="form-label">Description</label>
         <textarea class="form-control" id="description" name="description">{{ reward.description }}</textarea>
     </div>
-    <button type="submit" class="btn btn-success">Update Reward</button>
+    <button type="submit" class="btn btn-primary">Update Reward</button>
 </form>
 {% endblock %}
