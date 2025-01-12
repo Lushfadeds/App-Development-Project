@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash , session
+
 import os
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
 
 app = Flask(__name__)
@@ -45,7 +47,23 @@ class InventoryItem(db.Model):
     stock = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(100), nullable=False)
     image_url = db.Column(db.String(200), nullable=True)  # Store the path to the uploaded image
+    price = db.Column(db.Float, nullable=False)  # Added price column
 
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)  # Full name
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    contact_number = db.Column(db.String(15), nullable=False)  # Phone number
+    role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
+    role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Customer(db.Model):
     __bind_key__ = 'orders'
@@ -90,12 +108,17 @@ with app.app_context():
     if not InventoryItem.query.first():
         # Define initial items
         initial_items = [
-            {"name": "Fruit Plus Orange", "stock": 20, "category": "snacks", "image_url": "Fruit_plus_orange.jpg"},
-            {"name": "Chocolate Chip", "stock": 0, "category": "snacks", "image_url": "chocolate_chip.jpg"},
-            {"name": "Tin Biscuits", "stock": 10, "category": "biscuits", "image_url": "tin_biscuits.jpg"},
-            {"name": "Orange Juice", "stock": 15, "category": "beverages", "image_url": "orange_juice.jpg"},
-            {"name": "Table Cloth", "stock": 5, "category": "decorations", "image_url": "table_cloth.jpg"},
-            {"name": "Paper Plates", "stock": 30, "category": "supplies", "image_url": "plates.jpg"}
+            {"name": "Fruit Plus Orange", "stock": 20, "category": "snacks", "image_url": "Fruit_plus_orange.jpg",
+             "price": 1.50},
+            {"name": "Chocolate Chip", "stock": 0, "category": "snacks", "image_url": "chocolate_chip.jpg",
+             "price": 2.00},
+            {"name": "Tin Biscuits", "stock": 10, "category": "biscuits", "image_url": "tin_biscuits.jpg",
+             "price": 3.50},
+            {"name": "Orange Juice", "stock": 15, "category": "beverages", "image_url": "orange_juice.jpg",
+             "price": 4.00},
+            {"name": "Table Cloth", "stock": 5, "category": "decorations", "image_url": "table_cloth.jpg",
+             "price": 10.00},
+            {"name": "Paper Plates", "stock": 30, "category": "supplies", "image_url": "plates.jpg", "price": 0.50}
         ]
 
         # Insert each item into the database
@@ -131,11 +154,78 @@ with app.app_context():
         db.session.add_all(order_items)
         db.session.commit()
         print("Mock orders initialized in 'orders.db'.")
+    if not User.query.first():
+        # Create default staff and customer
+        default_staff = User(
+            name="Default Staff",
+            email="staff@example.com",
+            contact_number="1234567890",
+            role="staff",
+            role_id=1  # First role ID
+        )
+        default_staff.set_password("staff123")
+
+        default_customer = User(
+            name="Default Customer",
+            email="customer@example.com",
+            contact_number="0987654321",
+            role="customer",
+            role_id=2  # Second role ID
+        )
+        default_customer.set_password("customer123")
+
+        db.session.add(default_staff)
+        db.session.add(default_customer)
+        db.session.commit()
+
+        print("Default staff and customer added to the database.")
 
 
 @app.route('/')
 def home():
-    return render_template('homepage.html')
+    products = [
+        {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"},
+        {"name": "Chocolate Chip", "image_url": "chocolate_chip.jpg"},
+        {"name": "Tin Biscuits", "image_url": "plates.jpg"}
+    ]
+    our_story_image = "our_story.jpg"
+    motto = "motto.jpg"
+    return render_template('home_page.html', products=products, our_story_image=our_story_image, motto=motto)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        role = request.form['role']  # "staff" or "customer"
+
+        # Check if the email already exists
+        if User.query.filter_by(email=email).first():
+            flash('Email is already registered.')
+            return redirect(url_for('register'))
+
+        # Increment the role_id
+        max_role_id = db.session.query(db.func.max(User.role_id)).scalar() or 0
+        new_role_id = max_role_id + 1
+
+        # Create a new user
+        new_user = User(
+            name=name,
+            email=email,
+            contact_number=contact_number,
+            role=role,
+            role_id=new_role_id
+        )
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Registration successful! Please log in.')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
 
 
 @app.route('/rewards_index')
@@ -322,6 +412,161 @@ def order_summary_staff(order_id):
 
     return render_template("order_summary_staff.html", order=order, items=items)
 
+@app.route("/shopping", methods=["GET", "POST"])
+def shopping_page():
+    # Retrieve query parameters
+    category = request.args.get("category", "all")  # Default to "all"
+    search_query = request.args.get("search", "")
+    sort_option = request.args.get("sort", "")
+    query = InventoryItem.query
+
+    # Filter by search query
+    if search_query:
+        query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
+
+    # Filter by category (exclude "all" to fetch everything)
+    if category and category != "all":
+        query = query.filter_by(category=category)
+
+    # Apply sorting options
+    if sort_option == "a-z":
+        query = query.order_by(InventoryItem.name.asc())
+    elif sort_option == "low-high":
+        query = query.order_by(InventoryItem.price.asc())
+    elif sort_option == "high-low":
+        query = query.order_by(InventoryItem.price.desc())
+
+    # Fetch items from the database
+    items = query.all()
+
+    # Retrieve cart from session
+    cart = session.get("cart", [])
+    cart_count = session.get("cart_count", 0)  # Retrieve cart count
+
+    # Precompute max stock for each cart item
+    for cart_item in cart:
+        item = InventoryItem.query.get(cart_item["item_id"])
+        if item:
+            cart_item["max_quantity"] = item.stock + cart_item["quantity"]  # Available stock + currently in cart
+        else:
+            cart_item["max_quantity"] = cart_item["quantity"]  # Fallback to the current quantity
+
+    # Calculate total price
+    total_price = sum(cart_item["price"] * cart_item["quantity"] for cart_item in cart) if cart else 0
+
+    # Render the shopping page
+    return render_template(
+        "shopping_page.html",
+        items=items,
+        cart=cart,
+        total_price=total_price,
+        cart_count=cart_count
+    )
+
+@app.route("/add_to_cart", methods=["POST"])
+def add_to_cart():
+    item_id = int(request.form.get("item_id"))
+    quantity = int(request.form.get("quantity"))
+
+    # Fetch the item from the database
+    item = InventoryItem.query.get(item_id)
+    if not item:
+        flash("Item not found.", "danger")
+        return redirect(url_for("shopping_page"))
+
+    # Fetch the cart from session or initialize it
+    cart = session.get("cart", [])
+
+    # Get the total quantity of this item in the cart
+    current_cart_quantity = sum(cart_item["quantity"] for cart_item in cart if cart_item["item_id"] == item_id)
+
+    # Validate stock availability
+    if current_cart_quantity + quantity > item.stock:
+        flash(f"Cannot add more than {item.stock} of {item.name} to the cart!", "danger")
+        return redirect(url_for("shopping_page"))
+
+    # Check if item is already in the cart
+    for cart_item in cart:
+        if cart_item["item_id"] == item_id:
+            cart_item["quantity"] += quantity
+            break
+    else:
+        # Add a new item to the cart
+        cart.append({
+            "item_id": item_id,
+            "name": item.name,
+            "price": item.price,
+            "quantity": quantity
+        })
+
+    # Update the cart in the session
+    session["cart"] = cart
+    session["cart_count"] = sum(cart_item["quantity"] for cart_item in cart)  # Update cart count
+    session.modified = True
+
+    flash(f"Added {quantity} of {item.name} to cart!", "success")
+    return redirect(url_for("shopping_page"))
+@app.route("/remove_from_cart", methods=["POST"])
+def remove_from_cart():
+    item_id = int(request.form.get("item_id"))
+
+    # Fetch the cart from the session
+    cart = session.get("cart", [])
+
+    # Filter out the item with the given item_id
+    updated_cart = [item for item in cart if item["item_id"] != item_id]
+
+    # Update the session
+    session["cart"] = updated_cart
+    session["cart_count"] = sum(item["quantity"] for item in updated_cart)  # Recalculate cart count
+    session.modified = True
+
+    flash("Item removed from the cart!", "success")
+    return redirect(url_for("shopping_page"))
+@app.route("/update_cart", methods=["POST"])
+def update_cart():
+    item_id = request.form.get("item_id")
+    quantity = request.form.get("quantity")
+
+    # Validate form inputs
+    if item_id is None or quantity is None:
+        flash("Invalid input. Please try again.", "danger")
+        return redirect(url_for("shopping_page"))
+
+    item_id = int(item_id)
+    quantity = int(quantity)
+
+    # Fetch the item from the database
+    item = InventoryItem.query.get(item_id)
+    if not item:
+        flash("Item not found.", "danger")
+        return redirect(url_for("shopping_page"))
+
+    # Fetch the cart from the session
+    cart = session.get("cart", [])
+
+    # Update the quantity in the cart
+    for cart_item in cart:
+        if cart_item["item_id"] == item_id:
+            if quantity == 0:
+                cart.remove(cart_item)  # Remove item if quantity is set to 0
+            elif quantity <= item.stock:
+                cart_item["quantity"] = quantity
+            else:
+                flash(f"Cannot add more than {item.stock} of {item.name}.", "danger")
+                return redirect(url_for("shopping_page"))
+            break
+    else:
+        flash("Item not found in cart.", "danger")
+        return redirect(url_for("shopping_page"))
+
+    # Update the session
+    session["cart"] = cart
+    session["cart_count"] = sum(item["quantity"] for item in cart)  # Recalculate cart count
+    session.modified = True
+
+    flash("Cart updated successfully.", "success")
+    return redirect(url_for("shopping_page"))
 
 if __name__ == '__main__':
     app.run(debug=True)
