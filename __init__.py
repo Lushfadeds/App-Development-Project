@@ -14,7 +14,7 @@ items = []
 
 Allowed_Extensions = {'png','jpg','jpeg'}
 
-def allowed_file(filename):
+def allowed_file(filename): #Split the file from the dot Eg: Image1.png
     return '.' in filename and filename.rsplit('.',1)[1].lower() in Allowed_Extensions
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
@@ -241,6 +241,9 @@ def edit_inventory_item(item_id):
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image.save(image_path)  # Save the image to the static folder
                 item.image_url = f'{filename}'  # Update the item with the new image path
+            else:
+                print("File was not accepted !")
+                flash('Item did not update.', 'Failure')
 
         db.session.commit()
         flash('Item updated successfully!', 'success')
