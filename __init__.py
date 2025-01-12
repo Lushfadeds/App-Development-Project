@@ -560,7 +560,6 @@ def update_cart():
         flash("Item not found in cart.", "danger")
         return redirect(url_for("shopping_page"))
 
-    # Update the session
     session["cart"] = cart
     session["cart_count"] = sum(item["quantity"] for item in cart)  # Recalculate cart count
     session.modified = True
