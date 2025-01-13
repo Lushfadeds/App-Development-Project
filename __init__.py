@@ -16,6 +16,15 @@ class Reward(db.Model):
     description = db.Column(db.String(200), nullable=True)
 
 
+class Stats(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    products_sold = db.Column(db.Integer, nullable=True)
+    daily_sale = db.Column(db.Integer, nullable=True)
+    daily_customers = db.Column(db.Integer, nullable=True)
+    daily_unique_customers = db.Column(db.Integer, nullable=True)
+    money_spent_customer = db.Column(db.Integer, nullable=True)
+
+
 with app.app_context():
     db.create_all()
 
