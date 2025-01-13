@@ -326,24 +326,27 @@ def edit_inventory_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
 
     if request.method == "POST":
-        if "delete" in request.form:  # Check if the delete button was clicked
+        if "delete" in request.form:
             db.session.delete(item)
             db.session.commit()
             flash(f"Item '{item.name}' has been deleted successfully!", "success")
             return redirect(url_for("inventory_page"))
 
-        # Update item stock and details
+        # Update item details
         item.stock = int(request.form['stock'])
+        price = request.form.get('price')  # Get the price input
+        if not price or float(price) <= 0:
+            flash('Please provide a valid price greater than 0.')
+            return redirect(request.url)
+        item.price = float(price)
+
         if 'image_url' in request.files:
             image = request.files['image_url']
             if image and allowed_file(image.filename):
-                filename = secure_filename(image.filename)  # Sanitize filename
+                filename = secure_filename(image.filename)
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                image.save(image_path)  # Save the image to the static folder
-                item.image_url = f'{filename}'  # Update the item with the new image path
-            else:
-                print("File was not accepted !")
-                flash('Item did not update.', 'Failure')
+                image.save(image_path)
+                item.image_url = filename
 
         db.session.commit()
         flash('Item updated successfully!', 'success')
@@ -351,14 +354,29 @@ def edit_inventory_item(item_id):
 
     return render_template("edit_item.html", item=item)
 
-
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
     if request.method == 'POST':
-        name = request.form['name']
-        stock = int(request.form['stock'])
-        category = request.form['category']
-        picture = request.files['picture']
+        name = request.form.get('name')
+        stock = request.form.get('stock')
+        category = request.form.get('category')
+        price = request.form.get('price')  # Use .get() to avoid KeyError
+        picture = request.files.get('picture')
+
+        # Validate required fields
+        if not name or not stock or not category or not price:
+            flash('All fields are required, including price.')
+            return redirect(request.url)
+
+        # Validate price
+        try:
+            price = float(price)
+            if price <= 0:
+                flash('Price must be greater than 0.')
+                return redirect(request.url)
+        except ValueError:
+            flash('Invalid price value. Please enter a valid number.')
+            return redirect(request.url)
 
         # Validate file upload
         if picture and allowed_file(picture.filename):
@@ -371,7 +389,7 @@ def add_new_item():
             return redirect(request.url)
 
         # Add item to inventory
-        new_item = InventoryItem(name=name, stock=stock, category=category, image_url=image_url)
+        new_item = InventoryItem(name=name, stock=int(stock), category=category, image_url=image_url, price=price)
         db.session.add(new_item)
         db.session.commit()
 
