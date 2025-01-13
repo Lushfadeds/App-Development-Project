@@ -584,5 +584,6 @@ def update_cart():
     flash("Cart updated successfully.", "success")
     return redirect(url_for("shopping_page"))
 
+
 if __name__ == '__main__':
     app.run(debug=True)
