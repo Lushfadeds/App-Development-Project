@@ -1,0 +1,110 @@
+:root {
+    --primary-color: #D4B59E;
+    --secondary-color: #8C5A3F;
+    --background-color: #D4B59E;
+    --accent-color: #E7D3C5;
+    --text-color: #2B1D0E;
+}
+
+.central-container {
+    display: flex;
+    justify-content: center;
+}
+
+.container.my-5 h1 {
+    font-size: 3.5rem;
+}
+
+.container.my-5 button {
+    border: 1;
+    border-width: 2px;
+    border-color: black;
+    margin: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    color: black;
+}
+
+.container.my-5 button:hover {
+    background: black;
+    color: white;
+}
+
+.container.my-5 i {
+    margin-left: 7px;
+}
+
+.container-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(7, 150px);
+    width: 100%;
+    gap: 30px;
+}
+
+.item1 {
+    background: #C8C8C8;
+    border-radius: 15px;
+    box-shadow: 4px 4px 7px #6B6A6C;
+}
+
+.super-large {
+    grid-row: span 3;
+    grid-column: span 6;
+}
+
+.large-horizontal {
+    grid-row: span 2;
+    grid-column: span 3;
+}
+
+.large-vertical {
+    grid-row: span 3;
+    grid-column: span 2;
+}
+
+.small-hortizontal {
+    grid-column: span 2;
+    grid-row: span 1;
+}
+
+.medium {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+.box-container {
+    margin-left: auto;
+    padding-left: 25px;
+    margin-right: auto;
+    margin-top: 25px;
+}
+
+.box-container h1 {
+    font-size: 2rem;
+}
+
+.container.my-5 form div {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+table th {
+    padding: 20px;
+    border: 2px solid
+}
+
+table td {
+    border: 2px solid;
+    padding-left: 20px;
+}
+
+table button {
+    display: inline-block;
+    width: 100px;
+}
+
+.btns {
+    padding: 0px;
+}
