@@ -1,14 +1,24 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 
+# Library for Graphs
+import plotly.express as px
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output, State
+import pandas as pd
+
 app = Flask(__name__)
 
+# Initialising Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+# Create Reward Model
 class Reward(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -16,14 +26,63 @@ class Reward(db.Model):
     description = db.Column(db.String(200), nullable=True)
 
 
+# Create Stats Model
+class Stats(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    products_sold = db.Column(db.Integer, nullable=False)
+    daily_sale = db.Column(db.Integer, nullable=False)
+    daily_customers = db.Column(db.Integer, nullable=False)
+    daily_unique_customers = db.Column(db.Integer, nullable=False)
+    money_spent_customer = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return (f"{self.id}, {self.products_sold}, {self.daily_sale}, {self.daily_customers}, {self.daily_unique_customers}, {self.money_spent_customer}")
+
+#with app.app_context():
+#    db.drop_all()
+
+
 with app.app_context():
     db.create_all()
 
 
-
 @app.route('/')
 def home():
-    return render_template('homepage.html')
+    return render_template('analytics.html')
+
+@app.route('/add_graph', methods=['POST'])
+def add_graph():
+    product = request.form['products_sold']
+    sales_today = request.form['sales_today']
+    customers_today = request.form['customers_today']
+    unique_customers_today = request.form['unique_customers_today']
+    money_spent_customer = request.form['money_spent_customer']
+    new_graph = Stats(products_sold=product,
+                      daily_sale=sales_today,
+                      daily_customers=customers_today,
+                      daily_unique_customers=unique_customers_today,
+                      money_spent_customer=money_spent_customer)
+    db.session.add(new_graph)
+    db.session.commit()
+    return redirect(url_for('graph'))
+
+@app.route('/graph')
+def graph():
+    graph = Stats.query.all()
+    for i in graph:
+        print(i)
+    return render_template('analytics.html', graph_data=graph)
+
+@app.route('/update/<int:id>', methods=['GET', 'POST'])
+def update(id:int):
+    stat = Stats.query.get_or_404(id)
+    if request.method == "POST":
+        print('gelo')
+
+
+
+
+
 
 @app.route('/rewards_index')
 def rewards_index():
