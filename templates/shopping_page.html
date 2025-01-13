@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <link href="{{ url_for('static', filename='shopping.css') }}" rel="stylesheet">
+<div class="flashes">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
 
 <div class="container shopping-page">
     <div class="row">
