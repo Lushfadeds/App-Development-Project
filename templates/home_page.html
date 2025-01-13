@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link href="{{ url_for('static', filename='homepage.css') }}" rel="stylesheet">
+    <div class="container mt-5">
+        <!-- Motto Section -->
+    <div class="motto">
+        <img src="{{ url_for('static', filename=motto) }}" class="img-fluid" alt="Motto Image">
+    </div>
+
+
+
+    <!-- Product Section -->
+    <div class="row mt-4">
+        {% for product in products %}
+        <div class="col-md-4 mb-3">
+            <div class="product-card">
+                <img src="{{ url_for('static', filename=product.image_url) }}" class="img-fluid" alt="{{ product.name }}">
+                <h5 class="mt-2">{{ product.name }}</h5>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Our Story Section -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <img src="{{ url_for('static', filename=our_story_image) }}" class="img-fluid" alt="Our Story">
+        </div>
+        <div class="col-md-6 d-flex align-items-center">
+            <div class="our-story">
+                <h4>Our Story</h4>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum aliquet risus a dapibus fringilla.</p>
+                <button class="btn btn-primary">Find out more</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

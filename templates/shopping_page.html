@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+<link href="{{ url_for('static', filename='shopping.css') }}" rel="stylesheet">
+<div class="flashes">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+
+<div class="container shopping-page">
+    <div class="row">
+        <!-- Sidebar -->
+        <aside class="col-md-3 sidebar">
+            <h5>Filter</h5>
+            <ul>
+                <li><a href="?category=all">All</a></li>
+                <li><a href="?category=popular">Most Popular Item</a></li>
+                <li><a href="?category=booth">Booth Package</a></li>
+                <li><a href="?category=snacks">Traditional Snacks & Candy</a></li>
+                <li><a href="?category=toys">Traditional Toys</a></li>
+                <li><a href="?category=desserts">Desserts</a></li>
+                <li><a href="?category=biscuits">Biscuits</a></li>
+                <li><a href="?category=beverages">Beverages</a></li>
+                <li><a href="?category=decorations">Decorations</a></li>
+                <li><a href="?category=supplies">Catering Supplies</a></li>
+            </ul>
+            <hr>
+            <h5>Sort</h5>
+            <form method="get" action="/shopping">
+                <div class="filter-option">
+                    <input type="radio" id="az" name="sort" value="a-z">
+                    <label for="az">A - Z</label>
+                </div>
+                <div class="filter-option">
+                    <input type="radio" id="low-high" name="sort" value="low-high">
+                    <label for="low-high">Low - High $</label>
+                </div>
+                <div class="filter-option">
+                    <input type="radio" id="high-low" name="sort" value="high-low">
+                    <label for="high-low">High - Low $</label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm mt-3">Apply</button>
+            </form>
+        </aside>
+
+        <!-- Main Content -->
+        <section class="col-md-9">
+            <div class="inventory-grid">
+                {% if not items %}
+                <p>No items found for the selected category or filter.</p>
+                {% else %}
+                {% for item in items %}
+                <div class="inventory-item">
+                    <div class="item-card">
+                        <img src="{{ url_for('static', filename=item.image_url) }}" class="item-image" alt="{{ item.name }}">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">{{ item.name }}</h5>
+                            <p class="price">Price: ${{ "%.2f"|format(item.price) }}</p>
+                            <p class="stock">Stock: {{ item.stock }}</p>
+                            <form method="POST" action="/add_to_cart">
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <div class="quantity">
+                                    <input type="number" name="quantity" value="1" min="1" max="{{ item.stock }}" class="quantity-input">
+                                </div>
+                                <button type="submit" class="btn btn-success">Add to Cart</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </section>
+
+        <aside class="col-md-3 cart-sidebar">
+    <h5>Shopping Cart</h5>
+    <div class="cart-items">
+        {% if cart %}
+            {% for cart_item in cart %}
+            <div class="cart-item mb-3">
+                <h6>{{ cart_item['name'] }}</h6>
+                <p>Price: ${{ "%.2f"|format(cart_item['price'] * cart_item['quantity']) }}</p>
+
+                <!-- Form for quantity update and remove buttons -->
+                <div class="d-flex align-items-center">
+                    <form method="POST" action="/update_cart" class="d-flex align-items-center">
+                        <input type="hidden" name="item_id" value="{{ cart_item['item_id'] }}">
+
+                        <!-- Quantity Input -->
+                        <input type="number"
+                               name="quantity"
+                               value="{{ cart_item['quantity'] }}"
+                               min="1"
+                               max="{{ cart_item['max_quantity'] }}"
+                               class="form-control form-control-sm me-2 quantity-input"
+                               style="width: 60px;">
+
+                        <!-- Update Button -->
+                        <button type="submit" class="btn btn-primary btn-sm update-btn" disabled>Update</button>
+                    </form>
+
+                    <!-- Remove Button -->
+                    <form method="POST" action="/remove_from_cart" style="margin-left: 10px;">
+                        <input type="hidden" name="item_id" value="{{ cart_item['item_id'] }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>Your cart is empty.</p>
+        {% endif %}
+    </div>
+    <hr>
+    <h6>Total: ${{ "%.2f"|format(total_price) }}</h6>
+    <a href="/checkout" class="btn btn-primary btn-block">Proceed to Checkout</a>
+</aside>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Loop through all quantity input fields
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            const updateButton = input.closest('form').querySelector('.update-btn');
+            const originalValue = input.value;
+
+            // Event listener for input changes
+            input.addEventListener('input', function () {
+                if (this.value !== originalValue) {
+                    updateButton.disabled = false;
+                } else {
+                    updateButton.disabled = true;
+                }
+            });
+        });
+    });
+</script>
+
+
+{% endblock %}

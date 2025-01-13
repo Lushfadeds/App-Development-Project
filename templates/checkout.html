@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link href="{{ url_for('static', filename='homepage.css') }}" rel="stylesheet">
+
+<div class="container mt-5">
+
+    <!-- Checkout Form Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="checkout-form bg-light p-4 rounded">
+                <h2>Checkout</h2>
+                <form method="POST" action="/checkout">
+                    <div class="mb-3">
+                        <label for="customer_name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="customer_name" name="customer_name" placeholder="Enter your name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter your phone number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="items" class="form-label">Items</label>
+                        <textarea class="form-control" id="items" name="items" rows="3" placeholder="List your items here" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="total_cost" class="form-label">Total Cost</label>
+                        <input type="number" step="0.01" class="form-control" id="total_cost" name="total_cost" placeholder="Enter total cost" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

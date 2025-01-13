@@ -14,6 +14,12 @@
     {% block navbar %}
         {% include 'includes/_navbar.html' %}
     {% endblock %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+
+  {% endif %}
+{% endwith %}
+
 
     <div class="container-fluid">
       {% block content %}

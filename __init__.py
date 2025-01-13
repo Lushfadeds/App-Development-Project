@@ -1,24 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 
-# Library for Graphs
-import plotly.express as px
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output, State
-import pandas as pd
-
 app = Flask(__name__)
 
-# Initialising Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# Create Reward Model
 class Reward(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -26,24 +16,9 @@ class Reward(db.Model):
     description = db.Column(db.String(200), nullable=True)
 
 
-# Create Stats Model
-class Stats(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    products_sold = db.Column(db.Integer, nullable=False)
-    daily_sale = db.Column(db.Integer, nullable=False)
-    daily_customers = db.Column(db.Integer, nullable=False)
-    daily_unique_customers = db.Column(db.Integer, nullable=False)
-    money_spent_customer = db.Column(db.Integer, nullable=False)
-
-    def __repr__(self):
-        return (f"{self.id}, {self.products_sold}, {self.daily_sale}, {self.daily_customers}, {self.daily_unique_customers}, {self.money_spent_customer}")
-
-#with app.app_context():
-#    db.drop_all()
-
-
 with app.app_context():
     db.create_all()
+
 
 
 @app.route('/')
@@ -82,6 +57,50 @@ def update(id:int):
 
 
 
+
+    products = [
+        {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"},
+        {"name": "Chocolate Chip", "image_url": "chocolate_chip.jpg"},
+        {"name": "Tin Biscuits", "image_url": "plates.jpg"}
+    ]
+    our_story_image = "our_story.jpg"
+    motto = "motto.jpg"
+    return render_template('home_page.html', products=products, our_story_image=our_story_image, motto=motto)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        role = request.form['role']  # "staff" or "customer"
+
+        # Check if the email already exists
+        if User.query.filter_by(email=email).first():
+            flash('Email is already registered.')
+            return redirect(url_for('register'))
+
+        # Increment the role_id
+        max_role_id = db.session.query(db.func.max(User.role_id)).scalar() or 0
+        new_role_id = max_role_id + 1
+
+        # Create a new user
+        new_user = User(
+            name=name,
+            email=email,
+            contact_number=contact_number,
+            role=role,
+            role_id=new_role_id
+        )
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Registration successful! Please log in.')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
 
 
 @app.route('/rewards_index')

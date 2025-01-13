@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link href="{{ url_for('static', filename='register.css') }}" rel="stylesheet">
+
+<div class="container mt-5">
+    <!-- Logo Section -->
+    <div class="register-logo text-center mb-4">
+        <img src="{{ url_for('static', filename='MEICON.jpg') }}" alt="Logo" class="img-fluid" style="width: 100px;">
+    </div>
+
+    <!-- Registration Form Section -->
+    <div class="register-form bg-light p-4 rounded shadow">
+        <h2 class="text-center mb-4">Sign Up</h2>
+        <form method="POST" action="/register">
+            <div class="mb-3">
+                <label for="name" class="form-label">Name*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" id="name" name="name" placeholder="Enter your name" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone Number*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+<input
+            type="tel"
+            class="form-control"
+            id="phone"
+            name="contact_number"
+            placeholder="Enter your phone number"
+            pattern="^[6,8,9]\d{7}$"
+            required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" minlength="8" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirm Password*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" id="confirm_password" placeholder="Confirm your password" required>
+                </div>
+                <div id="password-error" class="text-danger" style="display: none;">Passwords do not match</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Role*</label><br>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="role" id="customer" value="customer" required>
+                    <label class="form-check-label" for="customer">Customer</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="role" id="staff" value="staff" required>
+                    <label class="form-check-label" for="staff">Staff</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Register</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
