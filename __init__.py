@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash , session
-
+from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -12,6 +12,7 @@ UPLOAD_FOLDER = 'static'
 app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
+print('gf')
 
 Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
@@ -39,15 +40,16 @@ class Reward(db.Model):
 with app.app_context():
     db.create_all()
 
-
 class InventoryItem(db.Model):
-    __bind_key__ = 'inventory'  # Specify the database bind key
+    __bind_key__ = 'inventory'
+    __tablename__ = 'inventory_item'  # Explicitly set table name
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     stock = db.Column(db.Integer, nullable=False)
     category = db.Column(db.String(100), nullable=False)
-    image_url = db.Column(db.String(200), nullable=True)  # Store the path to the uploaded image
-    price = db.Column(db.Float, nullable=False)  # Added price column
+    image_url = db.Column(db.String(200), nullable=True)
+    price = db.Column(db.Float, nullable=False)
+
 
 
 class User(db.Model):
@@ -76,29 +78,34 @@ class Customer(db.Model):
 class Order(db.Model):
     __bind_key__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
+    customer_name = db.Column(db.String(100), nullable=True)
+    customer_email = db.Column(db.String(100), nullable=True)
+    customer_contact = db.Column(db.String(15), nullable=True)
     date = db.Column(db.String(20), nullable=False)
     time = db.Column(db.String(10), nullable=False)
     location = db.Column(db.String(200), nullable=False)
     comments = db.Column(db.Text, nullable=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
-    customer = db.relationship('Customer', backref=db.backref('orders', lazy=True))
-    total = db.Column(db.Float, nullable=False)
+    total = db.Column(db.Float, nullable=True)
+    shop_name = db.Column(db.String(100), nullable=True)
+    shop_email = db.Column(db.String(100), nullable=True)
+    shop_contact = db.Column(db.String(15), nullable=True)
+    status = db.Column(db.String(20), default="Pending")
 
-    # Add the relationship to OrderItem
-    order_items = db.relationship('OrderItem', backref='order', lazy=True)
+
 
 
 class OrderItem(db.Model):
     __bind_key__ = 'orders'
+    __tablename__ = 'order_item'
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
-    inventory_item_id = db.Column(db.Integer, nullable=False)  # Reference to InventoryItem
+    inventory_item_id = db.Column(db.Integer, nullable=True)
     quantity = db.Column(db.Integer, nullable=False)
-    cost_per_item = db.Column(db.Float, nullable=False)
-    total_cost = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Float, nullable=False)
 
-    def get_inventory_item(self):
-        return InventoryItem.query.filter_by(id=self.inventory_item_id).first()
+    # Relationships
+    order = db.relationship('Order', backref='order_items')
+
 
 
 # Create the database table
@@ -131,54 +138,6 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
-    if not Order.query.first():  # Check if orders already exist
-        customer = Customer(name="Jane Doe", contact="+65 1234 5678", email="jane.doe@example.com")
-        db.session.add(customer)
-        db.session.commit()
-
-        order = Order(
-            date="2025-01-12",
-            time="14:30",
-            location="123 Main St, Singapore",
-            comments="No peanuts, please.",
-            customer_id=customer.id,
-            total=30.00
-        )
-        db.session.add(order)
-        db.session.commit()
-
-        order_items = [
-            OrderItem(order_id=order.id, inventory_item_id=1, quantity=2, cost_per_item=5.00, total_cost=10.00),
-            OrderItem(order_id=order.id, inventory_item_id=2, quantity=4, cost_per_item=5.00, total_cost=20.00),
-        ]
-        db.session.add_all(order_items)
-        db.session.commit()
-        print("Mock orders initialized in 'orders.db'.")
-    if not User.query.first():
-        # Create default staff and customer
-        default_staff = User(
-            name="Default Staff",
-            email="staff@example.com",
-            contact_number="1234567890",
-            role="staff",
-            role_id=1  # First role ID
-        )
-        default_staff.set_password("staff123")
-
-        default_customer = User(
-            name="Default Customer",
-            email="customer@example.com",
-            contact_number="0987654321",
-            role="customer",
-            role_id=2  # Second role ID
-        )
-        default_customer.set_password("customer123")
-
-        db.session.add(default_staff)
-        db.session.add(default_customer)
-        db.session.commit()
-
-        print("Default staff and customer added to the database.")
 
 
 @app.route('/')
@@ -427,7 +386,7 @@ def order_summary_staff(order_id):
         for item in order.order_items
     ]
 
-    return render_template("order_summary_staff.html", order=order, items=items)
+    return render_template("staff_order_summary.html", order=order, items=items)
 
 @app.route("/shopping", methods=["GET", "POST"])
 def shopping_page():
@@ -469,7 +428,7 @@ def shopping_page():
             cart_item["max_quantity"] = cart_item["quantity"]  # Fallback to the current quantity
 
     # Calculate total price
-    total_price = sum(cart_item["price"] * cart_item["quantity"] for cart_item in cart) if cart else 0
+    total_price = sum(item['price'] * item['quantity'] for item in cart)
 
     # Render the shopping page
     return render_template(
@@ -512,7 +471,7 @@ def add_to_cart():
         cart.append({
             "item_id": item_id,
             "name": item.name,
-            "price": item.price,
+            "price": float(item.price) if item.price else 0,
             "quantity": quantity
         })
 
@@ -583,6 +542,194 @@ def update_cart():
 
     flash("Cart updated successfully.", "success")
     return redirect(url_for("shopping_page"))
+
+# Helper function to validate expiry date
+def validate_expiry_date(expiry_date):
+    try:
+        # Parse expiry date as MM/YY
+        exp_month, exp_year = map(int, expiry_date.split('/'))
+        current_date = datetime.now()
+        expiry_date = datetime(year=2000 + exp_year, month=exp_month, day=1)
+        # Ensure the date is valid and in the future
+        return expiry_date > current_date
+    except (ValueError, IndexError):
+        return False
+@app.route('/checkout', methods=['GET', 'POST'])
+def checkout():
+    cart = session.get('cart', [])
+    if not cart:
+        flash("Your cart is empty. Add items before proceeding to checkout.", "danger")
+        return redirect(url_for('shopping_page'))
+
+    errors = {}  # Initialize an empty errors dictionary
+
+    if request.method == 'POST':
+        # Retrieve form data
+        card_number = request.form.get('card_number', '')
+        expiry_date = request.form.get('expiry_date', '')
+        cvc = request.form.get('cvc', '')
+        name = request.form.get('name', '')
+        date = request.form.get('date', '')
+        time = request.form.get('time', '')
+        location = request.form.get('location', '')
+        comment = request.form.get('comment', '')
+
+        # Validation
+        if not card_number or len(card_number) != 16 or not card_number.isdigit():
+            errors['card_number'] = "Card number must be 16 digits."
+        if not expiry_date or not validate_expiry_date(expiry_date):
+            errors['expiry_date'] = "Invalid expiry date. Use MM/YY format and ensure it is in the future."
+        if not cvc or len(cvc) != 3 or not cvc.isdigit():
+            errors['cvc'] = "CVC must be 3 digits."
+        if not name.isalpha():
+            errors['name'] = "Name must contain only letters."
+        if not date or not time or not location:
+            errors['order'] = "Order date, time, and location are required."
+
+        # If there are errors, render the template with the errors
+        if errors:
+            total_cost = sum(item['price'] * item['quantity'] for item in cart)
+            return render_template(
+                'checkout.html',
+                errors=errors,
+                card_number=card_number,
+                expiry_date=expiry_date,
+                cvc=cvc,
+                name=name,
+                date=date,
+                time=time,
+                location=location,
+                comment=comment,
+                items=cart,
+                total_cost=total_cost
+            )
+
+        # Process Order and Save to Database
+        order = Order(
+            customer_name=None,  # Placeholder for now
+            customer_email=None,
+            customer_contact=None,
+            date=date,
+            time=time,
+            location=location,
+            comments=comment
+        )
+        db.session.add(order)
+        db.session.commit()
+
+        # Save items to the order
+        for cart_item in cart:
+            order_item = OrderItem(
+                order_id=order.id,
+                inventory_item_id=cart_item['item_id'],
+                quantity=cart_item['quantity'],
+                price=cart_item['price']
+            )
+            db.session.add(order_item)
+        db.session.commit()
+
+        # Clear the cart
+        session.pop('cart', None)
+        flash("Checkout successful!", "success")
+        return redirect(url_for('order_summary', order_id=order.id))
+
+    # Handle GET request
+    total_cost = sum(item['price'] * item['quantity'] for item in cart)
+    return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
+
+
+def get_order_details(order_id):
+    """
+    Retrieve order details, including inventory details for each order item.
+    """
+    # Fetch the order
+    order = Order.query.get_or_404(order_id)
+    order_items = OrderItem.query.filter_by(order_id=order.id).all()
+
+    # Calculate total price and add inventory details
+    items_with_inventory = []
+    total_price = 0
+
+    for item in order_items:
+        inventory_item = InventoryItem.query.get(item.inventory_item_id)
+        price = item.price  # Use price stored in OrderItem
+        total_cost = item.quantity * price
+        total_price += total_cost
+
+        items_with_inventory.append({
+            "order_item": item,
+            "inventory_name": inventory_item.name if inventory_item else "Unknown Item",
+            "total_cost": total_cost,
+        })
+
+    return order, items_with_inventory, total_price
+
+@app.route('/order_summary/<int:order_id>')
+def order_summary(order_id):
+    # Retrieve shared order details
+    order, items_with_inventory, total_price = get_order_details(order_id)
+
+    return render_template(
+        'order_summary.html',
+        order=order,
+        items_with_inventory=items_with_inventory,
+        total_price=total_price
+    )
+
+@app.route("/staff_order_summary/<int:order_id>", methods=["GET"])
+def staff_order_summary(order_id):
+    # Retrieve shared order details
+    order, items_with_inventory, total_price = get_order_details(order_id)
+
+    # Add staff-specific features
+    staff_notes = "Confidential staff notes can go here."
+
+    return render_template(
+        "staff_order_summary.html",
+        order=order,
+        items_with_inventory=items_with_inventory,
+        total_price=total_price,
+        staff_notes=staff_notes  # Pass additional data for staff
+    )
+
+@app.route("/order/<int:order_id>/edit_item", methods=["POST"])
+def edit_order_item(order_id):
+    item_id = request.form.get("item_id")
+    new_quantity = request.form.get("new_quantity", None)
+    reason = request.form.get("reason")
+
+    if not item_id or not reason:
+        flash("Item ID and reason are required.", "danger")
+        return redirect(url_for("staff_order_summary", order_id=order_id))
+
+    # Fetch the order item
+    order_item = OrderItem.query.get(item_id)
+    if not order_item:
+        flash("Order item not found.", "danger")
+        return redirect(url_for("staff_order_summary", order_id=order_id))
+
+    current_quantity = order_item.quantity
+
+    if new_quantity:
+        new_quantity = int(new_quantity)
+        if new_quantity > current_quantity:
+            flash("New quantity cannot exceed the current quantity.", "danger")
+            return redirect(url_for("staff_order_summary", order_id=order_id))
+        if new_quantity < 1:
+            flash("Quantity must be at least 1.", "danger")
+            return redirect(url_for("staff_order_summary", order_id=order_id))
+
+        # Update quantity
+        order_item.quantity = new_quantity
+    else:
+        flash("Invalid quantity provided.", "danger")
+        return redirect(url_for("staff_order_summary", order_id=order_id))
+
+    # Commit changes
+    db.session.commit()
+
+    flash("Quantity updated successfully.", "success")
+    return redirect(url_for("staff_order_summary", order_id=order_id))
 
 
 if __name__ == '__main__':

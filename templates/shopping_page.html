@@ -116,7 +116,9 @@
     </div>
     <hr>
     <h6>Total: ${{ "%.2f"|format(total_price) }}</h6>
-    <a href="/checkout" class="btn btn-primary btn-block">Proceed to Checkout</a>
+<form action="/checkout" method="POST">
+    <button type="submit" class="btn btn-primary btn-block">Proceed to Checkout</button>
+</form>
 </aside>
 
 <script>
