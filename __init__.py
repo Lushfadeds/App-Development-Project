@@ -771,10 +771,9 @@ def forgot_password():
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
-        # Example data for display
         orders = Order.query.all()
-        notifications = 1  # Example notification count
-        event_revenue = 784  # Example event revenue
+        notifications = 1
+        event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
         return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)

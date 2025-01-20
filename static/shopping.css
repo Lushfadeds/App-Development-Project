@@ -31,6 +31,43 @@ categories-section ul li a {
     font-size: 14px;
 }
 
+.inventory-page {
+    display: flex;
+    height: 100%; /* Full height for content */
+}
+
+.sidebar {
+    width: 20%; /* Fixed width */
+    background-color: #f4f4f4;
+    padding: 20px;
+    height: 100vh; /* Full height */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Categories Section */
+.categories-section h2,
+.filter-section h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.categories-section ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+categories-section ul li a {
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+}
+
 .filter-section form {
     display: flex;
     flex-direction: column;
@@ -83,6 +120,8 @@ categories-section ul li a {
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* Four items per row */
     gap: 20px;
+    padding-bottom: 20px;
+    padding-top: 20px;
 }
 
 /* Inventory Items */
@@ -189,4 +228,56 @@ categories-section ul li a {
 .btn-block {
     display: block;
     width: 100%;
+}
+.shopping-page .sidebar {
+    width: 20%;
+    background-color: #f4f4f4;
+    padding: 20px;
+    height:auto; /* Full height */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin-top: 20px;
+    margin-bottom:20px;
+    border-radius:5px;
+
+}
+
+.shopping-page .inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive columns */
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.shopping-page .inventory-item {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.shopping-page .item-image {
+    height: 150px;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border-radius: 5px;
+}
+
+.shopping-page .card-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.shopping-page .price {
+    font-size: 1rem;
+    color: #28a745;
+}
+
+.shopping-page .stock {
+    font-size: 0.9rem;
+    color: #6c757d;
 }
