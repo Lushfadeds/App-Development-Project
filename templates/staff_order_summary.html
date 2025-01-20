@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+
+<link href="{{ url_for('static', filename='order_summary.css') }}" rel="stylesheet">
+<main class="order-summary-page">
+    <section class="order-details">
+        <h2>Order ID: {{ order.id }}</h2>
+        <p><strong>Date:</strong> {{ order.date }}</p>
+        <p><strong>Time:</strong> {{ order.time }}</p>
+        <p><strong>Location:</strong> {{ order.location }}</p>
+    </section>
+
+    <section class="customer-info">
+        <h3>Customer Info</h3>
+        <p><strong>Name:</strong> {{ order.customer_name or "Not Provided" }}</p>
+        <p><strong>Contact Number:</strong> {{ order.customer_contact or "Not Provided" }}</p>
+        <p><strong>Email:</strong> {{ order.customer_email or "Not Provided" }}</p>
+    </section>
+
+    <section class="items-ordered">
+        <h3>Items Ordered</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Cost per item</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items_with_inventory %}
+                <tr>
+                    <td>{{ item.order_item.id }}</td>
+                    <td>{{ item.inventory_name }}</td>
+                    <td>{{ item.order_item.quantity }}</td>
+                    <td>${{ "%.2f"|format(item.order_item.price) }}</td>
+                    <td>${{ "%.2f"|format(item.total_cost) }}</td>
+                    <td>
+                        <!-- Edit Button -->
+                        <button
+                            class="btn btn-primary btn-sm edit-btn"
+                            data-item-id="{{ item.order_item.id }}"
+                            data-current-quantity="{{ item.order_item.quantity }}">
+                            Edit
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Modal for Edit -->
+    <div id="editModal" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form id="editForm" method="POST" action="{{ url_for('edit_order_item', order_id=order.id) }}">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Quantity</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="item_id" id="modal-item-id">
+                        <div class="form-group">
+                            <label for="new_quantity">New Quantity</label>
+                            <input type="number" class="form-control" id="new_quantity" name="new_quantity" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">Reason</label>
+                            <textarea class="form-control" id="reason" name="reason" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const editModal = document.getElementById('editModal');
+    const itemIdInput = document.getElementById('modal-item-id');
+    const newQuantityInput = document.getElementById('new_quantity');
+
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const itemId = button.dataset.itemId;
+            const currentQuantity = parseInt(button.dataset.currentQuantity);
+
+            itemIdInput.value = itemId;
+            newQuantityInput.value = currentQuantity;
+            newQuantityInput.setAttribute('max', currentQuantity); // Set the max value
+            newQuantityInput.setAttribute('min', 1); // Ensure it cannot go below 1
+
+            $(editModal).modal('show');
+        });
+    });
+
+    newQuantityInput.addEventListener('input', () => {
+        const maxQuantity = parseInt(newQuantityInput.getAttribute('max'));
+        if (parseInt(newQuantityInput.value) > maxQuantity) {
+            newQuantityInput.value = maxQuantity; // Reset to max if exceeded
+            alert('Quantity cannot exceed the current value.');
+        }
+    });
+});
+
+</script>
+{% endblock %}
