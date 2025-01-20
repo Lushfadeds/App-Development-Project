@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash , session
 from datetime import datetime
+import re
 import os
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -780,6 +781,7 @@ def staff_dashboard():
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
+
 @app.route('/customer_account')
 def customer_account():
     if 'role' in session and session['role'] == 'customer':
@@ -792,6 +794,41 @@ def customer_account():
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
         return redirect(url_for('login'))
+
+def is_valid_email(email):
+    """Validates email format."""
+    regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    return re.match(regex, email)
+
+@app.route('/contact_us')
+def contact_us_page():
+    return render_template('contact_us.html')
+
+@app.route('/submit_contact_us', methods=['POST'])
+def submit_contact_us():
+    feedback_type = request.form.get('feedback_type')
+    full_name = request.form.get('full_name')
+    email = request.form.get('email')
+    message = request.form.get('message')
+
+    # Backend validations
+    if not feedback_type:
+        flash('Please select a feedback type.', 'danger')
+    elif not full_name or len(full_name) < 3:
+        flash('Full name must be at least 3 characters long.', 'danger')
+    elif not email or not is_valid_email(email):
+        flash('Please enter a valid email address.', 'danger')
+    elif not message or len(message) < 10:
+        flash('Message must be at least 10 characters long.', 'danger')
+    else:
+        # Success case: Process the feedback (e.g., store it in a database)
+        flash('Feedback submitted successfully!', 'success')
+        return redirect('/contact_us')
+
+    # If any validation fails, return to the form
+    return redirect('/contact_us')
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
