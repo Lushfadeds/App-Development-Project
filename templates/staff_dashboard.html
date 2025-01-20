@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
+
+<div class="dashboard-container">
+    <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
+    <p>Organize your business and improve your performance here!</p>
+    
+    <div class="stats-section">
+        <div class="stat-card">
+            <h3>Event Revenue</h3>
+            <p>${{ event_revenue }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Updates</h3>
+            <p>You currently have {{ low_stock_items }} items low on stock</p>
+        </div>
+    </div>
+    
+    <div class="notifications">
+        <h3>You currently have: {{ notifications }} Notification(s)</h3>
+        <button>View Notifications</button>
+    </div>
+    
+    <div class="orders">
+        <h3>View Current Orders</h3>
+        <table>
+            <tr>
+                <th>Order ID</th>
+                <th>Location</th>
+                <th>Cost</th>
+                <th>Action</th>
+            </tr>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.location }}</td>
+                <td>${{ order.total }}</td>
+                <td><a href="{{ url_for('order_summary', order_id=order.id) }}">Find out more</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}
