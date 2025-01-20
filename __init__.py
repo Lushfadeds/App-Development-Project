@@ -24,7 +24,8 @@ def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
-    'orders': 'sqlite:///orders.db'
+    'orders': 'sqlite:///orders.db',
+    'statistics': 'sqlite:///statistics.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -35,6 +36,16 @@ class Reward(db.Model):
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+
+
+class Stats(db.Model):
+    __bind_key__ = 'statistics'
+    id = db.Column(db.Integer, primary_key=True)
+    products_sold = db.Column(db.Integer, nullable=False)
+    daily_sale = db.Column(db.Integer, nullable=False)
+    daily_customers = db.Column(db.Integer, nullable=False)
+    daily_unique_customers = db.Column(db.Integer, nullable=False)
+    money_spent_customer = db.Column(db.Integer, nullable=False)
 
 
 with app.app_context():
@@ -180,6 +191,72 @@ with app.app_context():
         db.session.commit()
 
         print("Default staff and customer added to the database.")
+
+
+
+@app.route('/add_graph', methods=['POST'])
+def add_graph():
+    product = request.form['products_sold']
+    sales_today = request.form['sales_today']
+    customers_today = request.form['customers_today']
+    unique_customers_today = request.form['unique_customers_today']
+    money_spent_customer = request.form['money_spent_customer']
+
+    lowest_id = get_lowest_unused_id()
+
+    new_graph = Stats(id=lowest_id,
+                      products_sold=product,
+                      daily_sale=sales_today,
+                      daily_customers=customers_today,
+                      daily_unique_customers=unique_customers_today,
+                      money_spent_customer=money_spent_customer)
+    db.session.add(new_graph)
+    db.session.commit()
+    flash('Statistics Added Successfully!')
+    return redirect(url_for('graph'))
+
+
+def get_lowest_unused_id():
+    existing_ids = [stat.id for stat in Stats.query.with_entities(Stats.id).all()]
+    if not existing_ids:
+        return 1
+
+    for i in range(1, max(existing_ids) + 2):
+        if i not in existing_ids:
+            return i
+
+@app.route('/graph')
+def graph():
+    graph = Stats.query.all()
+    for i in graph:
+        print(i)
+    return render_template('analytics.html', graph_data=graph)
+
+@app.route('/update_analytics/<int:id>', methods=['GET', 'POST'])
+def update(id:int):
+    stat = Stats.query.get_or_404(id)
+    if request.method == "POST":
+        stat.products_sold = request.form['products_sold']
+        stat.daily_sale = request.form['daily_sale']
+        stat.daily_customers = request.form['daily_customers']
+        stat.daily_unique_customers = request.form['daily_unique_customers']
+        stat.money_spent_customer = request.form['money_spent_customer']
+
+        db.session.commit()
+        flash("Analytic updated successfully!", "success")
+        return redirect(url_for('graph'))
+
+    graph = Stats.query.all()
+    return render_template('update_analytics.html', graph_data=graph, stat=stat)
+
+@app.route('/delete_analytics/<int:id>', methods=['POST'])
+def delete(id):
+    stat = Stats.query.get_or_404(id)
+    db.session.delete(stat)
+    db.session.commit()
+    flash('Analytic deleted successfully', 'success')
+
+    return redirect(url_for('graph'))
 
 
 @app.route('/')
