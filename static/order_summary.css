@@ -15,27 +15,30 @@ body {
 }
 
 .order-summary-page h2,
-.order-summary-page h3 {
+.order-summary-page h3,
+.order-summary-page h4,
+.order-summary-page h5 {
     color: #333333;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 5px;
+    background-color: #e0e0e0;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 18px;
     margin-bottom: 15px;
+}
+
+.order-summary-page p {
+    margin: 5px 0;
+    color: #555555;
 }
 
 .order-details,
 .customer-info,
+.shop-info,
 .comments-request,
-.items-ordered,
-.receipt-download {
+.items-ordered {
     margin-bottom: 20px;
-}
-
-.order-details p,
-.customer-info p,
-.comments-request p {
-    font-size: 16px;
-    color: #555555;
-    margin: 5px 0;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 table {
@@ -44,17 +47,19 @@ table {
     margin-top: 10px;
 }
 
-table th,
-table td {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
+table, th, td {
+    border: 1px solid #cccccc;
+}
+
+th, td {
+    padding: 10px;
+    text-align: center;
 }
 
 table th {
     background-color: #f4f4f4;
-    font-weight: bold;
     color: #333333;
+    font-weight: bold;
 }
 
 table tbody tr:nth-child(even) {
@@ -65,12 +70,19 @@ table tbody tr:hover {
     background-color: #f1f1f1;
 }
 
-
-.items-ordered p {
+tfoot {
+    background-color: #f4f4f4;
     font-weight: bold;
-    font-size: 18px;
-    color: #222222;
-    margin-top: 10px;
+}
+
+tfoot td {
+    border-top: 2px solid #cccccc;
+    font-size: 16px;
+    text-align: right;
+}
+
+tfoot td:first-child {
+    text-align: left;
 }
 
 .download-btn {
@@ -79,14 +91,15 @@ table tbody tr:hover {
     font-size: 16px;
     background-color: #007bff;
     color: #ffffff;
-    text-align: center;
     text-decoration: none;
     border: none;
     border-radius: 4px;
+    margin-top: 20px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .download-btn:hover {
     background-color: #0056b3;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }

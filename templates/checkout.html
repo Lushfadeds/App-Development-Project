@@ -1,61 +1,187 @@
 {% extends "base.html" %}
 {% block content %}
+<link href="{{ url_for('static', filename='checkout.css') }}" rel="stylesheet">
+
 <div class="container my-5">
     <div class="row">
         <!-- Add New Card Section -->
         <div class="col-md-6">
             <h3 class="mb-4">Add New Card <i class="bi bi-credit-card"></i></h3>
             <form method="POST" action="{{ url_for('checkout') }}">
+                <!-- Card Number -->
                 <div class="mb-3">
                     <label for="card_number" class="form-label">Card Number</label>
-                    <input type="text" class="form-control" id="card_number" name="card_number" placeholder="Enter card number" required>
+                    <input
+                        type="text"
+                        class="form-control {% if errors.card_number %}is-invalid{% endif %}"
+                        id="card_number"
+                        name="card_number"
+                        placeholder="Enter 16-digit card number"
+                        value="{{ card_number }}"
+                        required
+                        data-bs-toggle="tooltip"
+                        title="{{ errors.card_number if errors.card_number else '' }}">
                 </div>
+
+                <!-- Expiry Date and CVC -->
                 <div class="mb-3 row">
                     <div class="col-8">
                         <label for="expiry_date" class="form-label">Expiry Date</label>
-                        <input type="text" class="form-control" id="expiry_date" name="expiry_date" placeholder="MM/YY" required>
+                        <input
+                            type="text"
+                            class="form-control {% if errors.expiry_date %}is-invalid{% endif %}"
+                            id="expiry_date"
+                            name="expiry_date"
+                            placeholder="MM/YY"
+                            value="{{ expiry_date }}"
+                            required
+                            data-bs-toggle="tooltip"
+                            title="{{ errors.expiry_date if errors.expiry_date else '' }}">
                     </div>
                     <div class="col-4">
                         <label for="cvc" class="form-label">CVC</label>
-                        <input type="text" class="form-control" id="cvc" name="cvc" placeholder="CVC" required>
+                        <input
+                            type="text"
+                            class="form-control {% if errors.cvc %}is-invalid{% endif %}"
+                            id="cvc"
+                            name="cvc"
+                            placeholder="CVC"
+                            value="{{ cvc }}"
+                            required
+                            data-bs-toggle="tooltip"
+                            title="{{ errors.cvc if errors.cvc else '' }}">
                     </div>
                 </div>
+
+                <!-- Name -->
                 <div class="mb-3">
                     <label for="name" class="form-label">Name</label>
-                    <input type="text" class="form-control" id="name" name="name" placeholder="Name on card" required>
+                    <input
+                        type="text"
+                        class="form-control {% if errors.name %}is-invalid{% endif %}"
+                        id="name"
+                        name="name"
+                        placeholder="Name on card"
+                        value="{{ name }}"
+                        pattern="^[A-Za-z\s]+$"
+                        required
+                        data-bs-toggle="tooltip"
+                        title="{{ errors.name if errors.name else '' }}">
                 </div>
-                <button type="submit" class="btn btn-dark w-100">Pay ${{ total_cost | round(2) }}</button>
+
+
+                <!-- Order Details: Date, Time, and Location -->
+                <div class="mb-3">
+                    <label for="date" class="form-label">Order Date</label>
+                    <input
+                        type="date"
+                        class="form-control {% if errors.date %}is-invalid{% endif %}"
+                        id="date"
+                        name="date"
+                        value="{{ date }}"
+                        required
+                        data-bs-toggle="tooltip"
+                        title="{{ errors.date if errors.date else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label for="time" class="form-label">Order Time</label>
+                    <input
+                        type="time"
+                        class="form-control {% if errors.time %}is-invalid{% endif %}"
+                        id="time"
+                        name="time"
+                        value="{{ time }}"
+                        required
+                        data-bs-toggle="tooltip"
+                        title="{{ errors.time if errors.time else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="form-label">Order Location</label>
+                    <input
+                        type="text"
+                        class="form-control {% if errors.location %}is-invalid{% endif %}"
+                        id="location"
+                        name="location"
+                        placeholder="Enter delivery or event location"
+                        value="{{ location }}"
+                        required
+                        data-bs-toggle="tooltip"
+                        title="{{ errors.location if errors.location else '' }}">
+                </div>
+                <!-- Comment (Optional) -->
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Comment (Optional)</label>
+                    <textarea
+                        class="form-control {% if errors.comment %}is-invalid{% endif %}"
+                        id="comment"
+                        name="comment"
+                        placeholder="Enter any additional information or special requests."
+                        data-bs-toggle="tooltip"
+                        title="{{ errors.comment if errors.comment else '' }}">{{ comment }}</textarea>
+                </div>
+
+
+                <!-- Submit Button -->
+<button type="submit" class="btn btn-dark w-100">Pay ${{ total_cost | round(2) }}</button>
             </form>
         </div>
 
         <!-- Items Ordered Section -->
-        <div class="col-md-6">
-            <h3 class="mb-4">Items Ordered:</h3>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>QTY</th>
-                        <th>Item</th>
-                        <th>Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr>
-                        <td>{{ item.qty }}</td>
-                        <td>{{ item.name }}</td>
-                        <td>${{ item.price | round(2) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="2"><strong>Total Cost (Inclusive GST):</strong></td>
-                        <td><strong>${{ total_cost | round(2) }}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+       <div class="col-md-6">
+    <h3 class="mb-4">Items Ordered:</h3>
+    {% if items %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>QTY</th>
+                <th>Item</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.name }}</td>
+                <td>${{ "%.2f"|format(item.price) }}</td>
+                <td>${{ "%.2f"|format(item.quantity * item.price) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3"><strong>Total Cost:</strong></td>
+                <td><strong>${{ "%.2f"|format(total_cost) }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        Your cart is empty. Add items to your cart before proceeding to checkout.
+    </div>
+    {% endif %}
+</div>
+
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Enable all tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                trigger: 'focus', // Tooltip will show on focus
+            });
+        });
+
+        // Automatically show tooltips for fields with errors
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            if (tooltipTriggerEl.classList.contains('is-invalid')) {
+                bootstrap.Tooltip.getInstance(tooltipTriggerEl).show();
+            }
+        });
+    });
+</script>
 {% endblock %}

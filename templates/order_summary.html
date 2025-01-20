@@ -9,16 +9,16 @@
         <p><strong>Location:</strong> {{ order.location }}</p>
     </section>
 
-    <section class="customer-info">
-        <h3>Customer Info</h3>
-        <p><strong>Name:</strong> {{ order.customer.name }}</p>
-        <p><strong>Contact Number:</strong> {{ order.customer.contact }}</p>
-        <p><strong>Email:</strong> {{ order.customer.email }}</p>
+    <section class="shop-info">
+        <h3>Shop Info</h3>
+        <p><strong>Name:</strong> {{ order.shop_name or "Pending" }}</p>
+        <p><strong>Contact Number:</strong> {{ order.shop_contact or "Pending" }}</p>
+        <p><strong>Email:</strong> {{ order.shop_email or "Pending" }}</p>
     </section>
 
     <section class="comments-request">
         <h3>Comments/Request</h3>
-        <p>{{ order.comments }}</p>
+        <p>{{ order.comments or "None" }}</p>
     </section>
 
     <section class="items-ordered">
@@ -34,24 +34,23 @@
                 </tr>
             </thead>
             <tbody>
-                {% for item in order.order_items %}
+                {% for item in items_with_inventory %}
                 <tr>
-                    <td>{{ item.id }}</td>
-                    <td>{{ item.get_inventory_item().name }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>${{ "%.2f"|format(item.cost_per_item) }}</td>
+                    <td>{{ item.order_item.id }}</td>
+                    <td>{{ item.inventory_name }}</td>
+                    <td>{{ item.order_item.quantity }}</td>
+                    <td>${{ "%.2f"|format(item.order_item.price) }}</td>
                     <td>${{ "%.2f"|format(item.total_cost) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4"><strong>Total Cost:</strong></td>
+                    <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
+                </tr>
+            </tfoot>
         </table>
-        <p><strong>Total Cost:</strong> ${{ "%.2f"|format(order.total) }} (Not inclusive of GST and service charge)</p>
-    </section>
-
-
-    <section class="receipt-download">
-        <p>Click here to download a full summary of the receipt:</p>
-        <button class="download-btn">Download</button>
     </section>
 </main>
 {% endblock %}
