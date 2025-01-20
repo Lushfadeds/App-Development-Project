@@ -38,7 +38,8 @@ class Reward(db.Model):
 
 
 with app.app_context():
-    db.create_all()
+    if not os.path.exists('rewards.db'):
+        db.create_all()
 
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
