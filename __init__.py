@@ -617,7 +617,7 @@ def checkout():
         db.session.add(order)
         db.session.commit()
 
-        # Save items to the order
+        # Save items to the order and update inventory stock
         for cart_item in cart:
             order_item = OrderItem(
                 order_id=order.id,
@@ -626,6 +626,14 @@ def checkout():
                 price=cart_item['price']
             )
             db.session.add(order_item)
+
+            # Update inventory stock
+            inventory_item = InventoryItem.query.get(cart_item['item_id'])
+            if inventory_item:
+                inventory_item.stock -= cart_item['quantity']
+                if inventory_item.stock < 0:
+                    inventory_item.stock = 0  # Ensure stock does not go below 0
+
         db.session.commit()
 
         # Clear the cart
@@ -636,7 +644,6 @@ def checkout():
     # Handle GET request
     total_cost = sum(item['price'] * item['quantity'] for item in cart)
     return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
-
 
 def get_order_details(order_id):
     """
@@ -731,6 +738,60 @@ def edit_order_item(order_id):
     flash("Quantity updated successfully.", "success")
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+
+        if user and user.check_password(password):
+            # Set session variables
+            session['user_id'] = user.id
+            session['role'] = user.role
+            session['email'] = user.email  # Ensure this is set
+            print(f"Session set: {session}")  # Debug
+
+            # Redirect based on role
+            if user.role == 'staff':
+                return redirect(url_for('staff_dashboard'))
+            elif user.role == 'customer':
+                return redirect(url_for('customer_account'))
+        else:
+            flash('Invalid email or password.', 'danger')
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+@app.route('/forgot_password')
+def forgot_password():
+    # Implement forgot password logic here
+    return 'Forgot Password Page'
+@app.route('/staff_dashboard')
+def staff_dashboard():
+    if 'role' in session and session['role'] == 'staff':
+        # Example data for display
+        orders = Order.query.all()
+        notifications = 1  # Example notification count
+        event_revenue = 784  # Example event revenue
+        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
+
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)
+    else:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+@app.route('/customer_account')
+def customer_account():
+    if 'role' in session and session['role'] == 'customer':
+        print(f"Session valid: {session}")  # Debug
+        orders = Order.query.filter_by(customer_email=session.get('email')).all()
+        notifications = 1  # Example
+        user_points = 8888  # Example
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+    else:
+        print("Unauthorized or session missing.")  # Debug
+        flash('Please log in to access your account.', 'warning')
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
