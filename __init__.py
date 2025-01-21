@@ -770,7 +770,6 @@ def customer_account():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    print('yes')
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
