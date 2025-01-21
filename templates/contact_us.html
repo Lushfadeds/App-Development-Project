@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='contact_us.css') }}">
-<title>Feedback Form</title>
 <body>
     <div class="container my-5">
         <!-- Flash Messages -->
@@ -24,7 +22,7 @@
         <div class="feedback-form p-4 rounded">
             <h2 class="text-center mb-4">FEEDBACK FORM</h2>
             <p class="text-center text-muted">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+               "Your Feedback Shapes Our Future – Let Us Know!"
             </p>
             <form id="feedbackForm" action="/submit_contact_us" method="POST">
                 <!-- Feedback Type -->
