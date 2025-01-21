@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash , session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash , session
 from datetime import datetime
+import re
 import os
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -739,6 +740,34 @@ def edit_order_item(order_id):
     flash("Quantity updated successfully.", "success")
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
+
+@app.route('/staff_dashboard')
+def staff_dashboard():
+    if 'role' in session and session['role'] == 'staff':
+        orders = Order.query.all()
+        notifications = 1
+        event_revenue = 784
+        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
+
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)
+    else:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+
+@app.route('/customer_account')
+def customer_account():
+    if 'role' in session and session['role'] == 'customer':
+        print(f"Session valid: {session}")  # Debug
+        orders = Order.query.filter_by(customer_email=session.get('email')).all()
+        notifications = 1  # Example
+        user_points = 8888  # Example
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+    else:
+        print("Unauthorized or session missing.")  # Debug
+        flash('Please log in to access your account.', 'warning')
+        return redirect(url_for('login'))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -767,36 +796,76 @@ def login():
 @app.route('/forgot_password')
 def forgot_password():
     # Implement forgot password logic here
-    return 'Forgot Password Page'
-@app.route('/staff_dashboard')
-def staff_dashboard():
-    if 'role' in session and session['role'] == 'staff':
-        orders = Order.query.all()
-        notifications = 1
-        event_revenue = 784
-        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
+    return 'Forgot Password Page...'
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)
-    else:
-        flash('Unauthorized access.', 'danger')
-        return redirect(url_for('login'))
-@app.route('/customer_account')
-def customer_account():
-    if 'role' in session and session['role'] == 'customer':
-        print(f"Session valid: {session}")  # Debug
-        orders = Order.query.filter_by(customer_email=session.get('email')).all()
-        notifications = 1  # Example
-        user_points = 8888  # Example
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
-    else:
-        print("Unauthorized or session missing.")  # Debug
-        flash('Please log in to access your account.', 'warning')
-        return redirect(url_for('login'))
-@app.route('/spinwin', methods=['GET'])
+def is_valid_email(email):
+    if "@" in email and "." in email.split("@")[-1]:
+        return True
+    return False
 
-def spinwin():
-    prizes = ["Prize 1", "Prize 2", "Prize 3", "Try Again", "Grand Prize"]
-    return render_template('spinwin.html', prizes=prizes)
+@app.route('/contact_us')
+def contact_us_page():
+    return render_template('contact_us.html')
+
+@app.route('/submit_contact_us', methods=['POST'])
+def submit_contact_us():
+    feedback_type = request.form.get('feedback_type')
+    full_name = request.form.get('full_name')
+    email = request.form.get('email')
+    message = request.form.get('message')
+
+    if not feedback_type:
+        flash('Please select a feedback type.', 'danger')
+    elif not full_name or len(full_name) < 3:
+        flash('Full name must be at least 3 characters long.', 'danger')
+    elif not email or not is_valid_email(email):
+        flash('Please enter a valid email address.', 'danger')
+    elif not message or len(message) < 10:
+        flash('Message must be at least 10 characters long.', 'danger')
+    else:
+        flash('Feedback submitted successfully!', 'success')
+        return redirect('/contact_us')
+
+    return redirect('/contact_us')
+
+
+user_data = {
+    "weekly_points": [0, 0, 0, 0, 0, 0, 0],
+    "total_points": 0
+}
+
+
+@app.route('/points_system')
+def points_system_page():
+    return render_template('points_system.html')
+
+
+@app.route('/collect-points', methods=['POST'])
+def collect_points():
+
+    day = request.json.get('day')
+    if user_data["weekly_points"][day] == 0:
+        user_data["weekly_points"][day] = 2
+        user_data["total_points"] += 2
+        return jsonify(
+            {"success": True, "message": "You collected 2 points!", "total_points": user_data["total_points"]})
+    return jsonify({"success": False, "message": "Points already collected for today!"})
+
+
+@app.route('/spin-wheel', methods=['POST'])
+def spin_wheel():
+    """Handle spin wheel logic."""
+    import random
+    options = [0, 2, 3, 5, 0, "Try Again", 2, "House Loses"]  # Spin options
+    result = random.choice(options)
+
+    if isinstance(result, int):  # Add points if it's an integer
+        user_data["total_points"] += result
+        return jsonify({"success": True, "message": f"Congratulations! You earned {result} points.",
+                        "total_points": user_data["total_points"]})
+
+    return jsonify({"success": True, "message": result, "total_points": user_data["total_points"]})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
