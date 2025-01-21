@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<link href="{{ url_for('static', filename='spinwin.css') }}" rel="stylesheet">
+
+<main class="spinwin-page">
+    <h2>Spin the Wheel</h2>
+    <p>Try your luck and win amazing prizes!</p>
+
+    <div id="wheel" class="wheel">
+    {% for prize in prizes %}
+    <div class="wheel-section" style="transform: rotate({{ loop.index0 * (360 / prizes|length) }}deg);">
+        <div class="wheel-label">{{ prize }}</div>
+    </div>
+    {% endfor %}
+    </div>
+
+
+    <button id="spin-btn" class="btn btn-primary">Spin</button>
+    <p id="result-message" class="mt-3"></p>
+</main>
+
+<script>
+    const wheel = document.getElementById("wheel");
+    const spinBtn = document.getElementById("spin-btn");
+    const resultMessage = document.getElementById("result-message");
+
+    spinBtn.addEventListener("click", () => {
+        spinBtn.disabled = true;
+        resultMessage.innerText = "Spinning...";
+
+        // Simulate a spin
+        const spinDegrees = Math.floor(Math.random() * 360) + 360 * 3; // Spin multiple times for effect
+        wheel.style.transition = "transform 3s ease-out";
+        wheel.style.transform = `rotate(${spinDegrees}deg)`;
+
+        // Determine prize based on spin
+        setTimeout(() => {
+            const prizes = {{ prizes | tojson }};
+            const selectedPrize = prizes[Math.floor(Math.random() * prizes.length)];
+            resultMessage.innerText = `Congratulations! You won: ${selectedPrize}`;
+            spinBtn.disabled = false;
+        }, 3000);
+    });
+</script>
+{% endblock %}

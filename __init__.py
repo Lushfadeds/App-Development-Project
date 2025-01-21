@@ -792,6 +792,11 @@ def customer_account():
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
         return redirect(url_for('login'))
+@app.route('/spinwin', methods=['GET'])
+
+def spinwin():
+    prizes = ["Prize 1", "Prize 2", "Prize 3", "Try Again", "Grand Prize"]
+    return render_template('spinwin.html', prizes=prizes)
 
 if __name__ == '__main__':
     app.run(debug=True)
