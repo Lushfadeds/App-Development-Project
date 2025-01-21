@@ -854,18 +854,19 @@ def collect_points():
 
 @app.route('/spin-wheel', methods=['POST'])
 def spin_wheel():
-    """Handle spin wheel logic."""
     import random
-    options = [0, 2, 3, 5, 0, "Try Again", 2, "House Loses"]  # Spin options
+    options = ["3 Points", "2 Points", "5 Points", "Try Again", "Spin Again", "0 Points", "2 Points", "House Loses"]
     result = random.choice(options)
 
-    if isinstance(result, int):  # Add points if it's an integer
-        user_data["total_points"] += result
-        return jsonify({"success": True, "message": f"Congratulations! You earned {result} points.",
-                        "total_points": user_data["total_points"]})
+    # Add points only if the result includes "Points"
+    if "Points" in result:
+        points = int(result.split()[0])
+        user_data["total_points"] += points
 
-    return jsonify({"success": True, "message": result, "total_points": user_data["total_points"]})
-
+    return jsonify({
+        "message": result,
+        "total_points": user_data["total_points"]
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
