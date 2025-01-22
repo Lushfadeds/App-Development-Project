@@ -916,38 +916,25 @@ user_data = {
 }
 
 
-@app.route('/points_system')
-def points_system_page():
-    return render_template('points_system.html')
+@app.route('/points-system')
+def points_system():
+    total_points = user_data.get("total_points", 0)
+    return render_template('points_system.html', total_points=total_points)
 
-
-@app.route('/collect-points', methods=['POST'])
-def collect_points():
-
-    day = request.json.get('day')
-    if user_data["weekly_points"][day] == 0:
-        user_data["weekly_points"][day] = 2
-        user_data["total_points"] += 2
-        return jsonify(
-            {"success": True, "message": "You collected 2 points!", "total_points": user_data["total_points"]})
-    return jsonify({"success": False, "message": "Points already collected for today!"})
-
-
-@app.route('/spin-wheel', methods=['POST'])
-def spin_wheel():
+@app.route('/spin-result', methods=['POST'])
+def spin_result():
     import random
-    options = ["3 Points", "2 Points", "5 Points", "Try Again", "Spin Again", "0 Points", "2 Points", "House Loses"]
-    result = random.choice(options)
-
-    # Add points only if the result includes "Points"
-    if "Points" in result:
-        points = int(result.split()[0])
-        user_data["total_points"] += points
-
+    segments = [
+        "3 Points", "2 Points", "5 Points",
+        "Try Again", "Spin Again", "0 Points",
+        "2 Points", "House Loses"
+    ]
+    result = random.choice(segments)
     return jsonify({
         "message": result,
         "total_points": user_data["total_points"]
     })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
