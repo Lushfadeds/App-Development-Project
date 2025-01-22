@@ -1,26 +1,68 @@
-.container, .container-fluid, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
-    --bs-gutter-x: 1.5rem;
-    --bs-gutter-y: 0;
-    width: 100%;
-    padding-right: calc(var(--bs-gutter-x)* 2.5);
-    padding-left: calc(var(--bs-gutter-x)* 2.5);
-    margin-right: auto;
-    margin-left: auto;
-    padding-bottom: 35px;
+/* General Form Container */
+.container {
+    max-width: 500px;
+    margin: 0 auto;
 }
+
+/* Form and Logo Styling */
+.register-form {
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #d3d3d3; /* Form background color (light gray) */
+    text-align: center;
+    position: relative;
+    margin-bottom: 50px;
+}
+
+.register-logo img {
+    border-radius: 50%;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Form Title */
+.register-form h2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+/* Input Fields */
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group span {
+    background-color: #e9ecef;
+}
+
+/* Radio Buttons */
+.form-check {
+    margin-left: 0;
+}
+
+.form-check-label {
+    margin-left: 5px;
+}
+
+/* Submit Button */
 .btn-primary {
-    --bs-btn-color: #ffffff;
-    --bs-btn-bg: #8c5a40;
-    --bs-btn-border-color: #ffffff;
-    --bs-btn-hover-color: #2b1d0e;
-    --bs-btn-hover-bg: #D4B59E;
-    --bs-btn-hover-border-color: #ffffff;
-    --bs-btn-focus-shadow-rgb: 49, 132, 253;
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: #0a58ca;
-    --bs-btn-active-border-color: #0a53be;
-    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: #0d6efd;
-    --bs-btn-disabled-border-color: #0d6efd;
+    background-color: #8c5a40;
+    border-color: #ffffff;
+}
+
+.btn-primary:hover {
+    background-color: #D4B59E;
+    border-color: #ffffff;
+}
+
+/* Error Styling */
+#password-error {
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+    color: red;
 }

@@ -910,32 +910,39 @@ def submit_contact_us():
 
     return redirect('/contact_us')
 
-
-user_data = {
-    "weekly_points": [0, 0, 0, 0, 0, 0, 0],
-    "total_points": 0
-}
-
-
-@app.route('/points-system')
+@app.route('/points_system')
 def points_system():
-    total_points = user_data.get("total_points", 0)
-    return render_template('points_system.html', total_points=total_points)
+    # Initialize session variables if not set
+    if 'points' not in session:
+        session['points'] = 0
+    if 'last_login' not in session:
+        session['last_login'] = None
+    if 'streak' not in session:
+        session['streak'] = 0
 
-@app.route('/spin-result', methods=['POST'])
-def spin_result():
+    # Check if the user logs in on a new day
+    today = datetime.now().date()
+    last_login = session['last_login']
+
+    if last_login is None or last_login != str(today):
+        session['last_login'] = str(today)
+        session['streak'] += 1
+        session['points'] += 2  # Add points for daily login
+
+    return render_template('points_system.html', points=session['points'], streak=session['streak'])
+
+@app.route('/spin', methods=['POST'])
+def spin():
     import random
-    segments = [
-        "3 Points", "2 Points", "5 Points",
-        "Try Again", "Spin Again", "0 Points",
-        "2 Points", "House Loses"
-    ]
-    result = random.choice(segments)
-    return jsonify({
-        "message": result,
-        "total_points": user_data["total_points"]
-    })
 
+    # Spin the wheel and get random points
+    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
+    result = random.choice(outcomes)
+
+    # Update points in session
+    session['points'] += result
+
+    return {'result': result, 'points': session['points']}
 
 if __name__ == '__main__':
     app.run(debug=True)
