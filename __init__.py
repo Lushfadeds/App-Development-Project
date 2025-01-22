@@ -342,14 +342,14 @@ def rewards_page():
 
 @app.route("/inventory", methods=["GET"])
 def inventory_page():
-    category = request.args.get("category", "")
+    category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
     query = InventoryItem.query
 
     if search_query:
         query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
-    if category:
+    if category and category != "all":
         query = query.filter_by(category=category)
     if filter_option == "low_stock":
         query = query.filter(InventoryItem.stock < 10)
