@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link href="{{ url_for('static', filename='login.css') }}" rel="stylesheet">
+
+<div class="container mt-5">
+    <!-- Logo Section -->
+    <div class="login-logo text-center mb-4">
+        <img src="{{ url_for('static', filename='MEICON.jpg') }}" alt="Logo" class="img-fluid" style="width: 100px;">
+    </div>
+
+    <!-- Login Form Section -->
+    <div class="login-form bg-light p-4 rounded shadow">
+        <h2 class="text-center mb-4">Login</h2>
+        <form method="POST" action="/login">
+            <!-- Email Field -->
+            <div class="mb-3">
+                <label for="email" class="form-label">Email*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+                <label for="password" class="form-label">Password*</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" minlength="8" required>
+                </div>
+            </div>
+
+            <!-- Forgot Password Link -->
+            <div class="mb-3 text-end">
+                <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">Forgot password?</a>
+            </div>
+
+            <!-- Login Button -->
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+
+        <!-- Sign-Up Link -->
+        <div class="text-center mt-3">
+            <p>New here? <a href="{{ url_for('register') }}" class="text-decoration-none">Sign up</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

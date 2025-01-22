@@ -2,15 +2,17 @@
 {% block content %}
 <link href="{{ url_for('static', filename='shopping.css') }}" rel="stylesheet">
 <div class="flashes">
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    {% endfor %}
+</div>
 
-<div class="container shopping-page">
+<div class="shopping-page">
+    <!-- Sidebar -->
+    <div class="container-fluid shopping-page">
     <div class="row">
         <!-- Sidebar -->
         <aside class="col-md-3 sidebar">
@@ -74,6 +76,11 @@
                 {% endif %}
             </div>
         </section>
+    </div>
+</div>
+
+    </section>
+</div>
 
         <aside class="col-md-3 cart-sidebar">
     <h5>Shopping Cart</h5>

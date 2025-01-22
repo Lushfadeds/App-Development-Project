@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash , session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash , session
 from datetime import datetime
+import re
 import os
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -49,7 +50,8 @@ class Stats(db.Model):
 
 
 with app.app_context():
-    db.create_all()
+    if not os.path.exists('rewards.db'):
+        db.create_all()
 
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
@@ -116,6 +118,7 @@ class OrderItem(db.Model):
 
     # Relationships
     order = db.relationship('Order', backref='order_items')
+
 
 
 
@@ -697,7 +700,7 @@ def checkout():
         db.session.add(order)
         db.session.commit()
 
-        # Save items to the order
+        # Save items to the order and update inventory stock
         for cart_item in cart:
             order_item = OrderItem(
                 order_id=order.id,
@@ -706,6 +709,14 @@ def checkout():
                 price=cart_item['price']
             )
             db.session.add(order_item)
+
+            # Update inventory stock
+            inventory_item = InventoryItem.query.get(cart_item['item_id'])
+            if inventory_item:
+                inventory_item.stock -= cart_item['quantity']
+                if inventory_item.stock < 0:
+                    inventory_item.stock = 0  # Ensure stock does not go below 0
+
         db.session.commit()
 
         # Clear the cart
@@ -716,7 +727,6 @@ def checkout():
     # Handle GET request
     total_cost = sum(item['price'] * item['quantity'] for item in cart)
     return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
-
 
 def get_order_details(order_id):
     """
@@ -811,6 +821,133 @@ def edit_order_item(order_id):
     flash("Quantity updated successfully.", "success")
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
+
+@app.route('/staff_dashboard')
+def staff_dashboard():
+    if 'role' in session and session['role'] == 'staff':
+        orders = Order.query.all()
+        notifications = 1
+        event_revenue = 784
+        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
+
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)
+    else:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+
+@app.route('/customer_account')
+def customer_account():
+    if 'role' in session and session['role'] == 'customer':
+        print(f"Session valid: {session}")  # Debug
+        orders = Order.query.filter_by(customer_email=session.get('email')).all()
+        notifications = 1  # Example
+        user_points = 8888  # Example
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+    else:
+        print("Unauthorized or session missing.")  # Debug
+        flash('Please log in to access your account.', 'warning')
+        return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+
+        if user and user.check_password(password):
+            # Set session variables
+            session['user_id'] = user.id
+            session['role'] = user.role
+            session['email'] = user.email  # Ensure this is set
+            print(f"Session set: {session}")  # Debug
+
+            # Redirect based on role
+            if user.role == 'staff':
+                return redirect(url_for('staff_dashboard'))
+            elif user.role == 'customer':
+                return redirect(url_for('customer_account'))
+        else:
+            flash('Invalid email or password.', 'danger')
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+@app.route('/forgot_password')
+def forgot_password():
+    # Implement forgot password logic here
+    return 'Forgot Password Page...'
+
+def is_valid_email(email):
+    if "@" in email and "." in email.split("@")[-1]:
+        return True
+    return False
+
+@app.route('/contact_us')
+def contact_us_page():
+    return render_template('contact_us.html')
+
+@app.route('/submit_contact_us', methods=['POST'])
+def submit_contact_us():
+    feedback_type = request.form.get('feedback_type')
+    full_name = request.form.get('full_name')
+    email = request.form.get('email')
+    message = request.form.get('message')
+
+    if not feedback_type:
+        flash('Please select a feedback type.', 'danger')
+    elif not full_name or len(full_name) < 3:
+        flash('Full name must be at least 3 characters long.', 'danger')
+    elif not email or not is_valid_email(email):
+        flash('Please enter a valid email address.', 'danger')
+    elif not message or len(message) < 10:
+        flash('Message must be at least 10 characters long.', 'danger')
+    else:
+        flash('Feedback submitted successfully!', 'success')
+        return redirect('/contact_us')
+
+    return redirect('/contact_us')
+
+
+user_data = {
+    "weekly_points": [0, 0, 0, 0, 0, 0, 0],
+    "total_points": 0
+}
+
+
+@app.route('/points_system')
+def points_system_page():
+    return render_template('points_system.html')
+
+
+@app.route('/collect-points', methods=['POST'])
+def collect_points():
+
+    day = request.json.get('day')
+    if user_data["weekly_points"][day] == 0:
+        user_data["weekly_points"][day] = 2
+        user_data["total_points"] += 2
+        return jsonify(
+            {"success": True, "message": "You collected 2 points!", "total_points": user_data["total_points"]})
+    return jsonify({"success": False, "message": "Points already collected for today!"})
+
+
+@app.route('/spin-wheel', methods=['POST'])
+def spin_wheel():
+    import random
+    options = ["3 Points", "2 Points", "5 Points", "Try Again", "Spin Again", "0 Points", "2 Points", "House Loses"]
+    result = random.choice(options)
+
+    # Add points only if the result includes "Points"
+    if "Points" in result:
+        points = int(result.split()[0])
+        user_data["total_points"] += points
+
+    return jsonify({
+        "message": result,
+        "total_points": user_data["total_points"]
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

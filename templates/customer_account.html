@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="account-container">
+    <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
+    
+    <div class="stats-section">
+        <div class="stat-card">
+            <h3>You currently have:</h3>
+            <p>{{ user_points }} points</p>
+            <button>Redeem Rewards</button>
+        </div>
+        <div class="stat-card">
+            <h3>You currently have:</h3>
+            <p>{{ notifications }} Notification(s)</p>
+            <button>View Notifications</button>
+        </div>
+    </div>
+    
+    <div class="orders">
+        <h3>View Current Orders</h3>
+        <table>
+            <tr>
+                <th>Order ID</th>
+                <th>Location</th>
+                <th>Cost</th>
+                <th>Action</th>
+            </tr>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.location }}</td>
+                <td>${{ order.total }}</td>
+                <td><a href="{{ url_for('order_summary', order_id=order.id) }}">Findut more</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}
