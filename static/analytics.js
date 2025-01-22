@@ -1,13 +1,21 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const overlay = document.getElementById('overlay');
-    const openOverlay = document.getElementById('edit-btn');
-    const closeOverlay = document.getElementById('close-btn');
-
-    openOverlay.addEventListener('click', () => {
-        overlay.style.display =  'flex';
+document.addEventListener("DOMContentLoaded", () => {
+    const openPopup = document.getElementById('openPopup');
+    const closePopup = document.getElementById('closePopup');
+    const popupOverlay = document.getElementById('popupOverlay');
+    // Open the popup
+    openPopup.addEventListener('click', () => {
+        popupOverlay.classList.add('show');
     });
-
-    closeOverlay.addEventListener('click', () => {
-        overlay.style.display = 'none';
+    // Close the popup
+    closePopup.addEventListener('click', () => {
+        popupOverlay.classList.remove('show');
     });
-});
+    // Close the popup when clicking outside the popup box
+    popupOverlay.addEventListener('click', (e) => {
+        if (e.target === popupOverlay) {
+            popupOverlay.classList.remove('show');
+        }
+    });
+})
+
+

@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
+from dashboard import create_dash_app
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -12,7 +13,6 @@ UPLOAD_FOLDER = 'static'
 app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
-print('gf')
 
 Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
@@ -150,7 +150,10 @@ with app.app_context():
         print("Existing inventory found in the database.")
 
 
-
+create_dash_app(app)
+@app.route('/staff_analytics')
+def staff_analytics():
+    return render_template('staffanalytics.html')
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
@@ -171,7 +174,7 @@ def add_graph():
     db.session.add(new_graph)
     db.session.commit()
     flash('Statistics Added Successfully!')
-    return redirect(url_for('graph'))
+    return redirect(url_for('analytics'))
 
 
 def get_lowest_unused_id():
@@ -183,8 +186,8 @@ def get_lowest_unused_id():
         if i not in existing_ids:
             return i
 
-@app.route('/graph')
-def graph():
+@app.route('/analytics')
+def analytics():
     graph = Stats.query.all()
     for i in graph:
         print(i)
@@ -202,7 +205,7 @@ def update(id:int):
 
         db.session.commit()
         flash("Analytic updated successfully!", "success")
-        return redirect(url_for('graph'))
+        return redirect(url_for('analytics'))
 
     graph = Stats.query.all()
     return render_template('update_analytics.html', graph_data=graph, stat=stat)
@@ -214,7 +217,7 @@ def delete(id):
     db.session.commit()
     flash('Analytic deleted successfully', 'success')
 
-    return redirect(url_for('graph'))
+    return redirect(url_for('analytics'))
 
 
 @app.route('/')
