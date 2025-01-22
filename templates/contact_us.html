@@ -27,7 +27,7 @@
             <form id="feedbackForm" action="/submit_contact_us" method="POST">
                 <!-- Feedback Type -->
                 <div class="form-group">
-                    <label class="d-block">Feedback Type</label>
+                    <label class="d-block">Feedback Type*</label>
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="radio" name="feedback_type" id="comments" value="Comments">
                         <label class="form-check-label" for="comments">Comments</label>
@@ -44,29 +44,29 @@
 
                 <!-- Full Name -->
                 <div class="form-group">
-                    <label for="full_name">Full Name</label>
+                    <label for="full_name">Full Name*</label>
                     <div class="input-group">
                         <div class="input-group-prepend">
                             <span class="input-group-text"><i class="fas fa-user"></i></span>
                         </div>
-                        <input type="text" class="form-control" id="full_name" name="full_name" placeholder="Full name" required>
+                        <input type="text" class="form-control" id="full_name" name="full_name" placeholder="eg. John Tan" required>
                     </div>
                 </div>
 
                 <!-- Email -->
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email">Email Address*</label>
                     <div class="input-group">
                         <div class="input-group-prepend">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                         </div>
-                        <input type="email" class="form-control" id="email" name="email" placeholder="Email address" required>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="eg. johntan@gmail.com" required>
                     </div>
                 </div>
 
                 <!-- Message -->
                 <div class="form-group">
-                    <label for="message">Enter Message</label>
+                    <label for="message">Enter Message*</label>
                     <textarea class="form-control" id="message" name="message" rows="4" placeholder="Enter message..." required></textarea>
                 </div>
 
