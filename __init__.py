@@ -342,6 +342,7 @@ def rewards_page():
 
 @app.route("/inventory", methods=["GET"])
 def inventory_page():
+
     category = request.args.get("category", "")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
