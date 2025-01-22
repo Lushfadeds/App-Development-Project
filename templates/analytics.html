@@ -66,10 +66,10 @@
                 <td>{{ stat.daily_unique_customers }}</td>
                 <td>{{ stat.money_spent_customer }}</td>
                 <td class="btns">
-                    <form action="/update/{{ stat.id }}" method="POST">
-                        <button type="submit">Edit</button>
-                    </form>
-                    <form action="/delete/{{ stat.id }}" method="POST">
+                    <a href="/update_analytics/{{ stat.id }}" id="edit-btn">
+                        <button>Edit</button>
+                    </a>
+                    <form action="/delete_analytics/{{ stat.id }}" method="POST">
                         <button type="submit">Delete</button>
                     </form>
                 </td>
@@ -79,4 +79,47 @@
     </table>
 </div>
 
+<!-- DONT WORRY
+<div id="overlay" class="overlay">
+    <div class="overlay-content">
+        <div class="overlay-header">
+            <h2>Update Statistics</h2>
+            <button class="close-btn" id="close-btn">&times;</button>
+        </div>
+        <form method="POST" class="overlay-form px-3">
+            <div>
+                <label for="products_sold">Products Sold Today: </label>
+                <input type="text" id="name" name="name" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Sales Today: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Customers Today: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Unique Customers Today: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Average Money Spent Per Customer: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <button type="submit">Update</button>
+
+        </form>
+    </div>
+</div> -->
 {% endblock %}
