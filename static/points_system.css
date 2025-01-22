@@ -13,3 +13,9 @@ body {
 #spinButton {
     margin-top: 20px;
 }
+#wheelCanvas {
+    margin: 0 auto;
+    display: block;
+    border: 1px solid #ccc;
+    border-radius: 50%;
+}
