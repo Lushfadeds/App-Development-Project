@@ -58,7 +58,7 @@ h1 {
 #spin-button {
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #5a67d8;
+    background-color: #8c5a3f;
     color: white;
     border: none;
     border-radius: 5px;
@@ -67,5 +67,5 @@ h1 {
 }
 
 #spin-button:active {
-    background-color: #434190;
+    background-color: #D4B59E;
 }

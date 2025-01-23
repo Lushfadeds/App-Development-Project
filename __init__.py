@@ -851,6 +851,13 @@ def customer_account():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Check if the user is already logged in
+    if 'role' in session:
+        if session['role'] == 'staff':
+            return redirect(url_for('staff_dashboard'))  # Redirect to staff dashboard if the user is logged in as staff
+        elif session['role'] == 'customer':
+            return redirect(url_for('customer_account'))  # Redirect to customer account if the user is logged in as customer
+
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -861,7 +868,6 @@ def login():
             session['user_id'] = user.id
             session['role'] = user.role
             session['email'] = user.email  # Ensure this is set
-            print(f"Session set: {session}")  # Debug
 
             # Redirect based on role
             if user.role == 'staff':
@@ -874,6 +880,17 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('login.html')
+@app.route('/logout', methods=['POST'])
+def logout():
+    # Clear the session
+    session.clear()  # This will remove all session data
+
+    # Flash message (optional)
+    flash("You have been logged out successfully.", "success")
+
+    # Redirect to login page
+    return redirect(url_for('login'))
+
 
 @app.route('/forgot_password')
 def forgot_password():
