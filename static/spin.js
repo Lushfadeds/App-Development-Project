@@ -12,15 +12,17 @@ document.addEventListener("DOMContentLoaded", () => {
         // Randomly determine the spin angle
         const spinAngle = Math.floor(3600 + Math.random() * 360); // At least 10 full rotations
         const normalizedAngle = spinAngle % 360; // Get the final position angle
+        const segmentSize = 72; // Each segment covers 72 degrees
+        const outcomes = [2, 3, 5, 10, 0]; // Values on the wheel
 
         // Rotate the wheel
         wheel.style.transform = `rotate(${spinAngle}deg)`;
 
         // Calculate the result based on the normalized angle
         setTimeout(() => {
-            const segment = Math.floor((360 - normalizedAngle) / 72) % 5;
-            const outcomes = [2, 3, 5, 10, 0]; // Values on the wheel
-            const result = outcomes[segment];
+            // Determine the segment based on the normalized angle
+            const segmentIndex = Math.floor((360 - normalizedAngle + segmentSize / 2) % 360 / segmentSize) % outcomes.length;
+            const result = outcomes[segmentIndex];
 
             // Display the result
             fetch("/spin", {

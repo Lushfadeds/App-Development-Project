@@ -1,11 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='points_system.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='login_streak.css') }}">
 <body>
     <div class="container">
         <h1>Points System</h1>
-        <p>Points: <span id="points">{{ points }}</span></p>
-        <p>Login Streak: <span id="streak">{{ streak }}</span></p>
+
+              <div class="streak-container">
+            <button id="collect-points">Collect 2 Points</button>
+            <div class="streak-tracker">
+                <div class="day" data-day="Monday">
+                    <div class="circle"></div>
+                    <p>Monday</p>
+                </div>
+                <div class="day" data-day="Tuesday">
+                    <div class="circle"></div>
+                    <p>Tuesday</p>
+                </div>
+                <div class="day" data-day="Wednesday">
+                    <div class="circle"></div>
+                    <p>Wednesday</p>
+                </div>
+                <div class="day" data-day="Thursday">
+                    <div class="circle"></div>
+                    <p>Thursday</p>
+                </div>
+                <div class="day" data-day="Friday">
+                    <div class="circle"></div>
+                    <p>Friday</p>
+                </div>
+                <div class="day" data-day="Saturday">
+                    <div class="circle"></div>
+                    <p>Saturday</p>
+                </div>
+                <div class="day" data-day="Sunday">
+                    <div class="circle"></div>
+                    <p>Sunday</p>
+                </div>
+            </div>
+        </div>
+
 
         <h2>Spin the Wheel</h2>
         <div class="wheel-container">
@@ -22,6 +56,7 @@
         <p id="spin-result"></p>
     </div>
 
-    <script src="/static/points_system.js"></script>
+    <script src="/static/spin.js"></script>
+    <script src="/static/login_streak.js"></script>
 </body>
 {% endblock %}
