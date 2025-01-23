@@ -2,3 +2,19 @@
     padding: 1.5rem !important;
     margin-bottom: 40px;
 }
+
+
+
+.alert {
+    display: block;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #ffffff;
+    background-color: #dc3545; /* Default to red for danger */
+    border: 1px solid transparent;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}

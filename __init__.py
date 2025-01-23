@@ -869,6 +869,7 @@ def login():
             elif user.role == 'customer':
                 return redirect(url_for('customer_account'))
         else:
+            session.clear()
             flash('Invalid email or password.', 'danger')
             return redirect(url_for('login'))
 
