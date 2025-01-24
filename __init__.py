@@ -854,9 +854,9 @@ def login():
     # Check if the user is already logged in
     if 'role' in session:
         if session['role'] == 'staff':
-            return redirect(url_for('staff_dashboard'))  # Redirect to staff dashboard if the user is logged in as staff
+            return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
         elif session['role'] == 'customer':
-            return redirect(url_for('customer_account'))  # Redirect to customer account if the user is logged in as customer
+            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -876,7 +876,7 @@ def login():
                 return redirect(url_for('customer_account'))
         else:
             session.clear()
-            flash('Invalid email or password.', 'danger')
+            flash('Invalid email or password. Please try again.', 'danger')
             return redirect(url_for('login'))
 
     return render_template('login.html')
