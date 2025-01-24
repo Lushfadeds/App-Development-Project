@@ -2,3 +2,48 @@
     padding: 1.5rem !important;
     margin-bottom: 40px;
 }
+
+
+.alert {
+    padding: 10px 20px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    margin-top: 20px;
+    font-size: 1rem;
+}
+.alert .close {
+    position: absolute;
+    top: 5px;
+    right: 17px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #000;
+    cursor: pointer;
+}
+
+.alert .close:hover {
+    color: #333;
+}
+
+
+.alert-dismissible {
+    padding-right: 40px;
+}
+
+.btn-primary {
+--bs-btn-color: #ffffff;
+    --bs-btn-bg: #8c5a40;
+    --bs-btn-border-color: #ffffff;
+    --bs-btn-hover-color: #2b1d0e;
+    --bs-btn-hover-bg: #D4B59E;
+    --bs-btn-hover-border-color: #ffffff;
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #8c5a40;
+    --bs-btn-active-border-color: #0a53be;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #0d6efd;
+    --bs-btn-disabled-border-color: #0d6efd;
+}

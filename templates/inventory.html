@@ -7,6 +7,7 @@
             <div class="categories-section">
                 <h2>Categories</h2>
                 <ul>
+                    <li><a href="?category=all">All</a></li>
                     <li><a href="?category=snacks">Traditional Snacks & Candy</a></li>
                     <li><a href="?category=desserts">Desserts</a></li>
                     <li><a href="?category=biscuits">Biscuits</a></li>
@@ -41,14 +42,10 @@
 
         <!-- Main Content -->
         <section class="inventory-section">
-            <div class="action-bar">
-                <a href="/inventory/new" class="add-item-btn">Add New Item</a>
-            </div>
 
             <div class="search-bar">
                 <form method="get" action="/inventory">
                     <input type="text" name="search" placeholder="Search for items">
-                    <button type="submit">Search</button>
                 </form>
             </div>
 
@@ -67,8 +64,12 @@
                         </div>
                         <a href="{{ url_for('edit_inventory_item', item_id=item.id) }}" class="edit-btn">Edit</a>
                     </div>
+
                     {% endfor %}
                 {% endif %}
+            </div>
+            <div class="action-bar">
+                <a href="/inventory/new" class="add-item-btn">Add New Item</a>
             </div>
         </section>
     </main>

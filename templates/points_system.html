@@ -1,107 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Points System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='points_system.css') }}">
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <script src="{{ url_for('static', filename='js/Winwheel.min.js') }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-
-</head>
+<link rel="stylesheet" href="{{ url_for('static', filename='points_system.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='login_streak.css') }}">
 <body>
-    <div class="container my-4">
-        <header class="text-center mb-4">
-            <h1>Points System</h1>
-            <p>Total Points: <span id="totalPoints">{{ total_points }}</span></p>
-        </header>
+    <div class="container">
+        <h1>Points System</h1>
 
-        <!-- Weekly Progress Bar -->
-        <div class="text-center mb-4">
-            <div class="btn-group">
-                {% for name in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
-                    <button class="btn btn-outline-primary daily-btn" data-day="{{ loop.index0 }}">{{ name }}</button>
-                {% endfor %}
+              <div class="streak-container">
+            <button id="collect-points">Collect 2 Points</button>
+            <div class="streak-tracker">
+                <div class="day" data-day="Monday">
+                    <div class="circle"></div>
+                    <p>Monday</p>
+                </div>
+                <div class="day" data-day="Tuesday">
+                    <div class="circle"></div>
+                    <p>Tuesday</p>
+                </div>
+                <div class="day" data-day="Wednesday">
+                    <div class="circle"></div>
+                    <p>Wednesday</p>
+                </div>
+                <div class="day" data-day="Thursday">
+                    <div class="circle"></div>
+                    <p>Thursday</p>
+                </div>
+                <div class="day" data-day="Friday">
+                    <div class="circle"></div>
+                    <p>Friday</p>
+                </div>
+                <div class="day" data-day="Saturday">
+                    <div class="circle"></div>
+                    <p>Saturday</p>
+                </div>
+                <div class="day" data-day="Sunday">
+                    <div class="circle"></div>
+                    <p>Sunday</p>
+                </div>
             </div>
-            <p id="dailyMessage" class="text-success mt-2"></p>
         </div>
 
-        <!-- Spin Wheel Section -->
-        <div class="text-center">
-            <canvas id="wheelCanvas" width="500" height="500"></canvas>
-            <button id="spinButton" class="btn btn-primary mt-3">Spin</button>
-            <p id="spinResult" class="text-success mt-3"></p>
+
+        <h2>Spin the Wheel</h2>
+        <div class="wheel-container">
+            <div id="wheel">
+                <div class="segment">2</div>
+                <div class="segment">3</div>
+                <div class="segment">5</div>
+                <div class="segment">10</div>
+                <div class="segment">0</div>
+            </div>
+            <button id="spin-button">Spin</button>
         </div>
+
+        <p id="spin-result"></p>
     </div>
 
-    <script>
-  const theWheel = new Winwheel({
-    numSegments: 8,
-    segments: [
-        { fillStyle: "#eae56f", text: "3 Points" },
-        { fillStyle: "#89f26e", text: "2 Points" },
-        { fillStyle: "#7de6ef", text: "5 Points" },
-        { fillStyle: "#e7706f", text: "Try Again" },
-        { fillStyle: "#eae56f", text: "Spin Again" },
-        { fillStyle: "#89f26e", text: "0 Points" },
-        { fillStyle: "#7de6ef", text: "2 Points" },
-        { fillStyle: "#e7706f", text: "House Loses" },
-    ],
-    animation: {
-        type: "spinToStop",
-        duration: 5,
-        spins: 8,
-        callbackFinished: displayResult,
-    },
-});
-
-const spinButton = document.getElementById("spinButton");
-
-spinButton.addEventListener("click", () => {
-    spinButton.disabled = true;
-
-    $.post('/spin-wheel', {}, (response) => {
-        console.log("Backend Response:", response);
-
-        // Match the backend response message with the wheel's segments
-        let segmentIndex = theWheel.segments.findIndex(
-            (s) => s.text === response.message
-        );
-
-        // Fallback to the first segment if no match is found
-        if (segmentIndex === -1) {
-            console.warn("No matching segment. Defaulting to segment 0.");
-            segmentIndex = 0;
-        }
-
-        // Calculate stop angle
-        const stopAngle =
-            (360 / theWheel.numSegments) * segmentIndex +
-            Math.random() * (360 / theWheel.numSegments);
-
-        console.log("Segment Index:", segmentIndex, "Stop Angle:", stopAngle);
-
-        // Spin the wheel
-        theWheel.animation.stopAngle = 360 - stopAngle;
-        theWheel.startAnimation();
-
-        // Update total points after spinning
-        document.getElementById("totalPoints").innerText = response.total_points;
-    });
-});
-
-
-function displayResult() {
-    const winningSegment = theWheel.getIndicatedSegment();
-    document.getElementById("spinResult").innerText = `Result: ${winningSegment.text}`;
-    spinButton.disabled = false;
-}
-
-
-    </script>
+    <script src="/static/spin.js"></script>
+    <script src="/static/login_streak.js"></script>
 </body>
-</html>
 {% endblock %}

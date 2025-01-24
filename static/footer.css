@@ -36,6 +36,8 @@ footer {
 
 .footer-column ul li {
     margin-bottom: 8px;
+      list-style-type: none;
+
 }
 
 .footer-column ul li a {

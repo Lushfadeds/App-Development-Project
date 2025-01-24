@@ -8,6 +8,13 @@
     <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
     <p>Organize your business and improve your performance here!</p>
     
+    <!-- Logout Button -->
+    <div class="logout-section">
+        <form method="POST" action="{{ url_for('logout') }}">
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    </div>
+
     <div class="stats-section">
         <div class="stat-card">
             <h3>Event Revenue</h3>

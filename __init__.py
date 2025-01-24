@@ -352,14 +352,14 @@ def rewards_page():
 
 @app.route("/inventory", methods=["GET"])
 def inventory_page():
-    category = request.args.get("category", "")
+    category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
     query = InventoryItem.query
 
     if search_query:
         query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
-    if category:
+    if category and category != "all":
         query = query.filter_by(category=category)
     if filter_option == "low_stock":
         query = query.filter(InventoryItem.stock < 10)
@@ -861,6 +861,13 @@ def customer_account():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Check if the user is already logged in
+    if 'role' in session:
+        if session['role'] == 'staff':
+            return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
+        elif session['role'] == 'customer':
+            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -871,7 +878,6 @@ def login():
             session['user_id'] = user.id
             session['role'] = user.role
             session['email'] = user.email  # Ensure this is set
-            print(f"Session set: {session}")  # Debug
 
             # Redirect based on role
             if user.role == 'staff':
@@ -879,10 +885,22 @@ def login():
             elif user.role == 'customer':
                 return redirect(url_for('customer_account'))
         else:
-            flash('Invalid email or password.', 'danger')
+            session.clear()
+            flash('Invalid email or password. Please try again.', 'danger')
             return redirect(url_for('login'))
 
     return render_template('login.html')
+@app.route('/logout', methods=['POST'])
+def logout():
+    # Clear the session
+    session.clear()  # This will remove all session data
+
+    # Flash message (optional)
+    flash("You have been logged out successfully.", "success")
+
+    # Redirect to login page
+    return redirect(url_for('login'))
+
 
 @app.route('/forgot_password')
 def forgot_password():
@@ -919,45 +937,39 @@ def submit_contact_us():
 
     return redirect('/contact_us')
 
-
-user_data = {
-    "weekly_points": [0, 0, 0, 0, 0, 0, 0],
-    "total_points": 0
-}
-
-
 @app.route('/points_system')
-def points_system_page():
-    return render_template('points_system.html')
+def points_system():
+    # Initialize session variables if not set
+    if 'points' not in session:
+        session['points'] = 0
+    if 'last_login' not in session:
+        session['last_login'] = None
+    if 'streak' not in session:
+        session['streak'] = 0
 
+    # Check if the user logs in on a new day
+    today = datetime.now().date()
+    last_login = session['last_login']
 
-@app.route('/collect-points', methods=['POST'])
-def collect_points():
+    if last_login is None or last_login != str(today):
+        session['last_login'] = str(today)
+        session['streak'] += 1
+        session['points'] += 2  # Add points for daily login
 
-    day = request.json.get('day')
-    if user_data["weekly_points"][day] == 0:
-        user_data["weekly_points"][day] = 2
-        user_data["total_points"] += 2
-        return jsonify(
-            {"success": True, "message": "You collected 2 points!", "total_points": user_data["total_points"]})
-    return jsonify({"success": False, "message": "Points already collected for today!"})
+    return render_template('points_system.html', points=session['points'], streak=session['streak'])
 
-
-@app.route('/spin-wheel', methods=['POST'])
-def spin_wheel():
+@app.route('/spin', methods=['POST'])
+def spin():
     import random
-    options = ["3 Points", "2 Points", "5 Points", "Try Again", "Spin Again", "0 Points", "2 Points", "House Loses"]
-    result = random.choice(options)
 
-    # Add points only if the result includes "Points"
-    if "Points" in result:
-        points = int(result.split()[0])
-        user_data["total_points"] += points
+    # Spin the wheel and get random points
+    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
+    result = random.choice(outcomes)
 
-    return jsonify({
-        "message": result,
-        "total_points": user_data["total_points"]
-    })
+    # Update points in session
+    session['points'] += result
+
+    return {'result': result, 'points': session['points']}
 
 if __name__ == '__main__':
     app.run(debug=True)
