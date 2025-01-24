@@ -2,6 +2,8 @@
 {% block content %}
 <link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
 
+
+
 <div class="dashboard-container">
     <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
     <p>Organize your business and improve your performance here!</p>

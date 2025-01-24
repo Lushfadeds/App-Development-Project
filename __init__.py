@@ -152,8 +152,13 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
-
 create_dash_app(app)
+#with app.app_context():
+#    data = User.query.all()
+#    for i in data:
+#        print(f"{i.id}, {i.name}, {i.role}")
+
+
 @app.route('/staff_analytics')
 def staff_analytics():
     return render_template('staffanalytics.html')
@@ -221,6 +226,11 @@ def delete(id):
     flash('Analytic deleted successfully', 'success')
 
     return redirect(url_for('analytics'))
+
+
+@app.route('/aboutus')
+def aboutus():
+    return render_template('aboutus.html')
 
 
 @app.route('/')

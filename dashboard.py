@@ -12,5 +12,4 @@ def create_dash_app(flask_app):
     )
 
     dash_app.layout = html.Div([
-        html.H1('HELLO NIGGAS')
     ])

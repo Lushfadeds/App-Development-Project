@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock%}
+{% block content %}
+
+<link href="{{ url_for('static', filename='aboutus.css') }}" rel="stylesheet">
+
+<!-- Our Story Section -->
+
+<section class="story-section">
+    <div class="container">
+        <div class="row-fluid">
+            <div class="col-12">
+                <img src="static\our_story.jpg" alt="Our Story" class="img-fluid mb-4 object-fit-cover">
+                <h1>Our Story</h1>
+                <p class="fs-5 text-center">Born from the rapidly changing landscape of neighborhood retail, Mama Shop
+                    Events emerged as a response to the steady decline of traditional mama shops. Once vibrant
+                    community cornerstones, these small family-run stores have been increasingly squeezed out by modern
+                    supermarkets, convenience chains, and online shopping platforms. Our platform seeks to preserve the
+                    community spirit these shops historically represented by providing digital tools that empower local
+                    businesses and event organizers. By bridging traditional community connections with modern
+                    technology, we aim to revitalize the essence of neighborhood entrepreneurship that mama shops
+                    symbolized for generations.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Founders Section -->
+
+<section class="founders-section">
+    <div class="container">
+        <h2>Meet our Founders</h2>
+        <div class="row py-4">
+
+            <div class="col-md-3">
+                <div class="founder-card">
+                    <div class="founder-image">
+                        <img src="static\kingscout.jpg" alt="Pertama" class="img-fluid object-fit-cover">
+                    </div>
+                    <h3 class="founder-name">Pertama</h3>
+                    <p class="founder-title fs-5">Head of Analytics</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="founder-card">
+                    <div class="founder-image">
+                        <img src="static\wesley.jpg" alt="Wesley" class="img-fluid object-fit-cover">
+                    </div>
+                    <h3 class="founder-name">Wesley</h3>
+                    <p class="founder-title fs-5">Head of Inventory</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="founder-card">
+                    <div class="founder-image">
+                        <img src="static\jianwei.jpeg" alt="Jian Wei" class="img-fluid object-fit-cover">
+                    </div>
+                    <h3 class="founder-name">Jian Wei</h3>
+                    <p class="founder-title fs-5">Head of Management</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="founder-card">
+                    <div class="founder-image">
+                        <img src="static\glenden.jpeg" alt="Glenden" class="img-fluid object-fit-cover">
+                    </div>
+                    <h3 class="founder-name">Glenden</h3>
+                    <p class="founder-title fs-5">Head of Incentives</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
