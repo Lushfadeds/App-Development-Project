@@ -1,18 +1,22 @@
 .inventory-page {
     display: flex;
-    height: 100%; /* Full height for content */
+    height: 100%;
+
 }
 
 .sidebar {
     width: 20%; /* Fixed width */
     background-color: #f4f4f4;
     padding: 20px;
-    height: 100vh; /* Full height */
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
+    height: 120vh;
+    box-sizing: border-box;
 }
+
+.categories-section, .filter-section {
+    margin-bottom: 20px;
+}
+
 
 /* Categories Section */
 .categories-section h2,
@@ -21,12 +25,10 @@
     margin-bottom: 15px;
 }
 
-.categories-section ul {
+.categories-section ul , .filter-section {
     list-style: none;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin: 0;
 }
 
 categories-section ul li a {
@@ -74,7 +76,7 @@ categories-section ul li a {
 
 .sidebar ul li {
     font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .sidebar ul li a {
@@ -84,13 +86,11 @@ categories-section ul li a {
 
 /* Main Content Section */
 .inventory-section {
-    position: relative;
+    height: 100%;
     flex-grow: 1; /* Take up remaining space */
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center horizontally */
-    justify-content: flex-start; /* Align content to the top */
     overflow-y: auto;
 }
 
@@ -136,12 +136,13 @@ categories-section ul li a {
 
 /* Inventory Grid */
 .inventory-grid {
+    height: 100vh;
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* 4 items per row */
     gap: 20px;
     width: 100%;
-    max-width: 1200px;
     padding: 0 10px;
+    overflow-y: auto;
 }
 
 /* Inventory Items */
@@ -202,14 +203,11 @@ categories-section ul li a {
 }
 
 .action-bar{
-   position: absolute;
-   bottom: 20px;
-   left: 20px;
    z-index: 1000;
 }
 
 .add-item-btn{
-    padding: 10px 5px;
+    padding: 10px 15px;
     background-color: #333;
     color: white;
     border: none;
