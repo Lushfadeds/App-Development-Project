@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='contact_us.css') }}">
 <body>
     <div class="container my-5">
@@ -47,7 +48,7 @@
                     <label for="full_name">Full Name*</label>
                     <div class="input-group">
                         <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
                         </div>
                         <input type="text" class="form-control" id="full_name" name="full_name" placeholder="eg. John Tan" required>
                     </div>
@@ -58,7 +59,7 @@
                     <label for="email">Email Address*</label>
                     <div class="input-group">
                         <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                         </div>
                         <input type="email" class="form-control" id="email" name="email" placeholder="eg. johntan@gmail.com" required>
                     </div>
