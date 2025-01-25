@@ -4,7 +4,7 @@
 }
 
 .sidebar {
-    width: 250px; /* Fixed width */
+    width: 20%; /* Fixed width */
     background-color: #f4f4f4;
     padding: 20px;
     height: 100vh; /* Full height */
@@ -12,8 +12,6 @@
     display: flex;
     flex-direction: column;
     gap: 30px;
-    position: sticky;
-    top: 0;
 }
 
 /* Categories Section */
@@ -97,16 +95,13 @@ categories-section ul li a {
 }
 
 /* Search Bar */
-.search-bar form{
-    display: flex;
-    gap: 10px;
-    justify-content: center;
+.search-bar{
     width: 100%;
     max-width: 100%;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
-.search-bar input {
+.input-group {
     flex-grow: 1;
     padding: 12px 15px;
     border: 1px solid #ddd;
@@ -114,13 +109,29 @@ categories-section ul li a {
     width: 100%;
 }
 
-.search-bar button {
-    padding: 12px 20px;
-    background-color: #333;
-    color: white;
+.input-group span {
+    background-color: white;
+}
+
+.input-group-text {
+    background-color: #f9f9f9; /* Match your color theme */
     border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    padding: 0.5rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+}
+
+.form-control {
+    border: none;
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none; /* Remove default outline */
+    box-shadow: none; /* Remove default shadow */
 }
 
 /* Inventory Grid */
@@ -160,7 +171,7 @@ categories-section ul li a {
     margin-bottom: 10px;
 }
 
-.inventory-item .edit-btn {
+.change-item{
     background-color: #8c5a40;
     font-size: 12px;
     color: white;
@@ -170,7 +181,14 @@ categories-section ul li a {
     padding: 5px;
 }
 
-.inventory-item .edit-btn:hover{
+.edit-btn {
+    font-size: 15px;
+    color: white;
+    text-decoration: none;
+    padding: 5px;
+}
+
+.change-item:hover{
     background-color: #D4B59E;
     color: #ffffff;
 }
