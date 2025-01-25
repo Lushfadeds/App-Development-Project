@@ -235,14 +235,14 @@ def aboutus():
 
 @app.route('/')
 def home():
-    products = [
-        {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"},
-        {"name": "Chocolate Chip", "image_url": "chocolate_chip.jpg"},
-        {"name": "Tin Biscuits", "image_url": "plates.jpg"}
-    ]
+    best_products = [
+        {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
+        ]
+    team = "team.jpg"
+    community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=products, our_story_image=our_story_image, motto=motto)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -380,7 +380,7 @@ def edit_inventory_item(item_id):
         if "delete" in request.form:
             db.session.delete(item)
             db.session.commit()
-            flash(f"Item '{item.name}' has been deleted successfully!", "success")
+            flash(f"Item '{item.name}' has been deleted successfully!")
             return redirect(url_for("inventory_page"))
 
         # Update item details
@@ -400,7 +400,7 @@ def edit_inventory_item(item_id):
                 item.image_url = filename
 
         db.session.commit()
-        flash('Item updated successfully!', 'success')
+        flash('Item updated successfully!')
         return redirect(url_for("inventory_page"))
 
     return render_template("edit_item.html", item=item)
@@ -460,7 +460,7 @@ def delete_inventory_item(item_id):
     db.session.commit()
 
     # Flash a success message
-    flash(f"Item '{item.name}' has been deleted successfully!", "success")
+    flash(f"Item '{item.name}' has been deleted successfully!")
     return redirect(url_for("inventory_page"))
 
 
