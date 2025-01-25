@@ -1,6 +1,6 @@
 .inventory-page {
     display: flex;
-    height: 100%;
+    min-height: 100vh;
 
 }
 
@@ -9,24 +9,31 @@
     background-color: #f4f4f4;
     padding: 20px;
     overflow-y: auto;
-    height: 120vh;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
 }
 
-.categories-section, .filter-section {
-    margin-bottom: 20px;
+.categories-section,
+.filter-section {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between items in the same section */
 }
 
 
 /* Categories Section */
 .categories-section h2,
 .filter-section h2 {
-    font-size: 18px;
+    font-size: 20px;
     margin-bottom: 15px;
 }
 
-.categories-section ul , .filter-section {
-    list-style: none;
+.categories-section ul,
+.filter-section form {
     padding: 0;
     margin: 0;
 }
@@ -37,10 +44,11 @@ categories-section ul li a {
     font-size: 14px;
 }
 
-.filter-section form {
+.filter-section form{
     display: flex;
     flex-direction: column;
     gap: 15px; /* Space between radio options */
+    
 }
 
 .filter-option {
@@ -50,7 +58,7 @@ categories-section ul li a {
 }
 
 .filter-option label {
-    font-size: 14px;
+    font-size: 15px;
     color: #333;
 }
 
@@ -62,11 +70,12 @@ categories-section ul li a {
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
+    margin-top: 15px;
 }
 
 .sidebar h2 {
     font-size: 18px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .sidebar ul {
@@ -75,7 +84,6 @@ categories-section ul li a {
 }
 
 .sidebar ul li {
-    font-size: 14px;
     margin-bottom: 10px;
 }
 
@@ -86,7 +94,8 @@ categories-section ul li a {
 
 /* Main Content Section */
 .inventory-section {
-    height: 100%;
+    height: auto;
+    min-height: 100vh;
     flex-grow: 1; /* Take up remaining space */
     padding: 20px;
     display: flex;
@@ -136,7 +145,6 @@ categories-section ul li a {
 
 /* Inventory Grid */
 .inventory-grid {
-    height: 100vh;
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* 4 items per row */
     gap: 20px;
