@@ -64,22 +64,40 @@
 
          <!-- Sign-Up Link -->
         <div class="text-center mt-3">
-            <h2>New here? <br> <a href="{{ url_for('register') }}" class="signup-button">Sign up</a></h2>
+            <h2>New here?
+                <br>
+                <p class="signup-text">Discover more benefits and join us now!</p>
+                <br>
+                <a href="{{ url_for('register') }}" class="signup-button">Sign up</a></h2>
         </div>
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("DOMContentLoaded", function () {
     const flashMessages = document.querySelectorAll(".alert"); // Select all flash message alerts
     const mt3Div = document.querySelector(".mt-3");
 
-    if (flashMessages.length > 0) {
-        // If flash messages are present
-        mt3Div.style.top = "60.9%";
-        mt3Div.style.height = "730px";
-    } else {
-        // Default styles
-        mt3Div.style.top = "56.7%";
-        mt3Div.style.height = "670px";
+    function updateMt3Div() {
+        if (document.querySelectorAll(".alert").length > 0) {
+            // If flash messages are present
+            mt3Div.style.top = "60.9%";
+            mt3Div.style.height = "730px";
+        } else {
+            // Default styles
+            mt3Div.style.top = "56.7%";
+            mt3Div.style.height = "670px";
+        }
     }
+
+    // Set initial styles
+    updateMt3Div();
+
+    // Add event listener to the close buttons
+    flashMessages.forEach((message) => {
+        const closeButton = message.querySelector(".close");
+        closeButton.addEventListener("click", function () {
+            message.remove(); // Remove the flash message from the DOM
+            updateMt3Div(); // Recalculate the styles
+        });
+    });
 });
 
     </script>
