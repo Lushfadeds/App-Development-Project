@@ -1,20 +1,22 @@
 .inventory-page {
     display: flex;
-    height: 100%; /* Full height for content */
+    height: 100%;
+
 }
 
 .sidebar {
-    width: 250px; /* Fixed width */
+    width: 20%; /* Fixed width */
     background-color: #f4f4f4;
     padding: 20px;
-    height: 100vh; /* Full height */
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    position: sticky;
-    top: 0;
+    height: 120vh;
+    box-sizing: border-box;
 }
+
+.categories-section, .filter-section {
+    margin-bottom: 20px;
+}
+
 
 /* Categories Section */
 .categories-section h2,
@@ -23,12 +25,10 @@
     margin-bottom: 15px;
 }
 
-.categories-section ul {
+.categories-section ul , .filter-section {
     list-style: none;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin: 0;
 }
 
 categories-section ul li a {
@@ -76,7 +76,7 @@ categories-section ul li a {
 
 .sidebar ul li {
     font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .sidebar ul li a {
@@ -86,27 +86,22 @@ categories-section ul li a {
 
 /* Main Content Section */
 .inventory-section {
-    position: relative;
+    height: 100%;
     flex-grow: 1; /* Take up remaining space */
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center horizontally */
-    justify-content: flex-start; /* Align content to the top */
     overflow-y: auto;
 }
 
 /* Search Bar */
-.search-bar form{
-    display: flex;
-    gap: 10px;
-    justify-content: center;
+.search-bar{
     width: 100%;
     max-width: 100%;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
-.search-bar input {
+.input-group {
     flex-grow: 1;
     padding: 12px 15px;
     border: 1px solid #ddd;
@@ -114,23 +109,40 @@ categories-section ul li a {
     width: 100%;
 }
 
-.search-bar button {
-    padding: 12px 20px;
-    background-color: #333;
-    color: white;
+.input-group span {
+    background-color: white;
+}
+
+.input-group-text {
+    background-color: #f9f9f9; /* Match your color theme */
     border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    padding: 0.5rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+}
+
+.form-control {
+    border: none;
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none; /* Remove default outline */
+    box-shadow: none; /* Remove default shadow */
 }
 
 /* Inventory Grid */
 .inventory-grid {
+    height: 100vh;
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* 4 items per row */
     gap: 20px;
     width: 100%;
-    max-width: 1200px;
     padding: 0 10px;
+    overflow-y: auto;
 }
 
 /* Inventory Items */
@@ -160,7 +172,7 @@ categories-section ul li a {
     margin-bottom: 10px;
 }
 
-.inventory-item .edit-btn {
+.change-item{
     background-color: #8c5a40;
     font-size: 12px;
     color: white;
@@ -170,7 +182,14 @@ categories-section ul li a {
     padding: 5px;
 }
 
-.inventory-item .edit-btn:hover{
+.edit-btn {
+    font-size: 15px;
+    color: white;
+    text-decoration: none;
+    padding: 5px;
+}
+
+.change-item:hover{
     background-color: #D4B59E;
     color: #ffffff;
 }
@@ -184,14 +203,11 @@ categories-section ul li a {
 }
 
 .action-bar{
-   position: absolute;
-   bottom: 20px;
-   left: 20px;
    z-index: 1000;
 }
 
 .add-item-btn{
-    padding: 10px 5px;
+    padding: 10px 15px;
     background-color: #333;
     color: white;
     border: none;
