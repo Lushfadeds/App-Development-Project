@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request,send_file, jsonify, redirect, url_for, flash , session
 from datetime import datetime
 import re
 import os
@@ -26,7 +26,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
     'orders': 'sqlite:///orders.db',
-    'statistics': 'sqlite:///statistics.db'
+    'statistics': 'sqlite:///statistics.db',
+    'user': 'sqlite:///user.db',
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -53,7 +54,6 @@ with app.app_context():
     if not os.path.exists('rewards.db'):
         db.create_all()
 
-
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
     __tablename__ = 'inventory_item'  # Explicitly set table name
@@ -65,7 +65,9 @@ class InventoryItem(db.Model):
     price = db.Column(db.Float, nullable=False)
 
 
+
 class User(db.Model):
+    __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -79,7 +81,6 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
 
 class Customer(db.Model):
     __bind_key__ = 'orders'
@@ -106,6 +107,8 @@ class Order(db.Model):
     status = db.Column(db.String(20), default="Pending")
 
 
+
+
 class OrderItem(db.Model):
     __bind_key__ = 'orders'
     __tablename__ = 'order_item'
@@ -117,6 +120,8 @@ class OrderItem(db.Model):
 
     # Relationships
     order = db.relationship('Order', backref='order_items')
+
+
 
 
 # Create the database table
@@ -150,18 +155,15 @@ with app.app_context():
         print("Existing inventory found in the database.")
 
 create_dash_app(app)
-
-
-#with app.app_context():
-#    data = User.query.all()
-#    for i in data:
-#        print(f"{i.id}, {i.name}, {i.role}")
+with app.app_context():
+    data = User.query.all()
+    for i in data:
+        print(f"{i.id}, {i.name}, {i.role}")
 
 
 @app.route('/staff_analytics')
 def staff_analytics():
-    return render_template('staffanalytics.html')
-
+    return render_template('staffanalytics.html', active_page='staffanalytics')
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
@@ -194,7 +196,6 @@ def get_lowest_unused_id():
         if i not in existing_ids:
             return i
 
-
 @app.route('/analytics')
 def analytics():
     graph = Stats.query.all()
@@ -202,9 +203,8 @@ def analytics():
         print(i)
     return render_template('analytics.html', graph_data=graph)
 
-
 @app.route('/update_analytics/<int:id>', methods=['GET', 'POST'])
-def update(id: int):
+def update(id:int):
     stat = Stats.query.get_or_404(id)
     if request.method == "POST":
         stat.products_sold = request.form['products_sold']
@@ -219,7 +219,6 @@ def update(id: int):
 
     graph = Stats.query.all()
     return render_template('update_analytics.html', graph_data=graph, stat=stat)
-
 
 @app.route('/delete_analytics/<int:id>', methods=['POST'])
 def delete(id):
@@ -246,7 +245,6 @@ def home():
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
     return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -324,6 +322,7 @@ def delete_rewards(id):
     db.session.commit()
     flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
+
 
 
 user_points = 8888
@@ -408,7 +407,6 @@ def edit_inventory_item(item_id):
 
     return render_template("edit_item.html", item=item)
 
-
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
     if request.method == 'POST':
@@ -485,7 +483,6 @@ def order_summary_staff(order_id):
 
     return render_template("staff_order_summary.html", order=order, items=items)
 
-
 @app.route("/shopping", methods=["GET", "POST"])
 def shopping_page():
     # Retrieve query parameters
@@ -537,7 +534,6 @@ def shopping_page():
         cart_count=cart_count
     )
 
-
 @app.route("/add_to_cart", methods=["POST"])
 def add_to_cart():
     item_id = int(request.form.get("item_id"))
@@ -581,8 +577,6 @@ def add_to_cart():
 
     flash(f"Added {quantity} of {item.name} to cart!", "success")
     return redirect(url_for("shopping_page"))
-
-
 @app.route("/remove_from_cart", methods=["POST"])
 def remove_from_cart():
     item_id = int(request.form.get("item_id"))
@@ -600,8 +594,6 @@ def remove_from_cart():
 
     flash("Item removed from the cart!", "success")
     return redirect(url_for("shopping_page"))
-
-
 @app.route("/update_cart", methods=["POST"])
 def update_cart():
     item_id = request.form.get("item_id")
@@ -646,7 +638,6 @@ def update_cart():
     flash("Cart updated successfully.", "success")
     return redirect(url_for("shopping_page"))
 
-
 # Helper function to validate expiry date
 def validate_expiry_date(expiry_date):
     try:
@@ -658,14 +649,17 @@ def validate_expiry_date(expiry_date):
         return expiry_date > current_date
     except (ValueError, IndexError):
         return False
-
-
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
+    # Check if the user is logged in (i.e., has an active session)
+    if 'user_id' not in session:
+        flash("Please log in to proceed with the checkout.", "danger")
+        return redirect(url_for('login'))  # Redirect to login if not logged in
+
     cart = session.get('cart', [])
     if not cart:
         flash("Your cart is empty. Add items before proceeding to checkout.", "danger")
-        return redirect(url_for('shopping_page'))
+        return redirect(url_for('shopping_page'))  # Redirect to shopping page if cart is empty
 
     errors = {}  # Initialize an empty errors dictionary
 
@@ -710,11 +704,17 @@ def checkout():
                 total_cost=total_cost
             )
 
+        # Fetch the logged-in user's details from the session
+        user = User.query.get(session['user_id'])  # Retrieve the user from the database
+        if not user:
+            flash("User not found. Please log in again.", "danger")
+            return redirect(url_for('login'))  # If no user is found, redirect to login
+
         # Process Order and Save to Database
         order = Order(
-            customer_name=None,  # Placeholder for now
-            customer_email=None,
-            customer_contact=None,
+            customer_name=user.name,  # Use the logged-in user's name
+            customer_email=user.email,  # Use the logged-in user's email
+            customer_contact=user.contact_number,  # Use the logged-in user's contact number
             date=date,
             time=time,
             location=location,
@@ -751,7 +751,6 @@ def checkout():
     total_cost = sum(item['price'] * item['quantity'] for item in cart)
     return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
 
-
 def get_order_details(order_id):
     """
     Retrieve order details, including inventory details for each order item.
@@ -778,7 +777,6 @@ def get_order_details(order_id):
 
     return order, items_with_inventory, total_price
 
-
 @app.route('/order_summary/<int:order_id>')
 def order_summary(order_id):
     # Retrieve shared order details
@@ -790,7 +788,6 @@ def order_summary(order_id):
         items_with_inventory=items_with_inventory,
         total_price=total_price
     )
-
 
 @app.route("/staff_order_summary/<int:order_id>", methods=["GET"])
 def staff_order_summary(order_id):
@@ -807,7 +804,6 @@ def staff_order_summary(order_id):
         total_price=total_price,
         staff_notes=staff_notes  # Pass additional data for staff
     )
-
 
 @app.route("/order/<int:order_id>/edit_item", methods=["POST"])
 def edit_order_item(order_id):
@@ -827,27 +823,31 @@ def edit_order_item(order_id):
 
     current_quantity = order_item.quantity
 
-    if new_quantity:
+    # Check if new_quantity was provided and validate
+    if new_quantity is not None:
         new_quantity = int(new_quantity)
-        if new_quantity > current_quantity:
-            flash("New quantity cannot exceed the current quantity.", "danger")
-            return redirect(url_for("staff_order_summary", order_id=order_id))
-        if new_quantity < 1:
-            flash("Quantity must be at least 1.", "danger")
+
+        # Allow the quantity to be set to 0 (zero)
+        if new_quantity < 0:
+            flash("Quantity cannot be less than 0.", "danger")
             return redirect(url_for("staff_order_summary", order_id=order_id))
 
-        # Update quantity
+        # Update the quantity, increase or decrease based on new value
         order_item.quantity = new_quantity
+
+        # Optionally handle logic for when quantity is set to 0 (e.g., mark as deleted or grayed out)
+        if new_quantity == 0:
+            order_item.status = "Removed"  # Optionally mark as 'Removed'
+            flash("Item quantity set to 0 and marked as removed.", "success")
+        else:
+            flash("Quantity updated successfully.", "success")
+
+        db.session.commit()
     else:
         flash("Invalid quantity provided.", "danger")
         return redirect(url_for("staff_order_summary", order_id=order_id))
 
-    # Commit changes
-    db.session.commit()
-
-    flash("Quantity updated successfully.", "success")
     return redirect(url_for("staff_order_summary", order_id=order_id))
-
 
 @app.route('/staff_dashboard')
 def staff_dashboard():
@@ -857,12 +857,10 @@ def staff_dashboard():
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications,
-                               event_revenue=event_revenue, low_stock_items=low_stock_items)
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
-
 
 @app.route('/customer_account')
 def customer_account():
@@ -871,8 +869,7 @@ def customer_account():
         orders = Order.query.filter_by(customer_email=session.get('email')).all()
         notifications = 1  # Example
         user_points = 8888  # Example
-        return render_template('customer_account.html', orders=orders, notifications=notifications,
-                               user_points=user_points)
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
     else:
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
@@ -886,8 +883,7 @@ def login():
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
         elif session['role'] == 'customer':
-            return redirect(
-                url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -911,14 +907,12 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('login.html')
-
-
 @app.route('/logout', methods=['POST'])
 def logout():
     # Clear the session
     session.clear()  # This will remove all session data
 
-    # Flash message
+    # Flash message (optional)
     flash("You have been logged out successfully.", "success")
 
     # Redirect to login page
@@ -930,17 +924,14 @@ def forgot_password():
     # Implement forgot password logic here
     return 'Forgot Password Page...'
 
-
 def is_valid_email(email):
     if "@" in email and "." in email.split("@")[-1]:
         return True
     return False
 
-
 @app.route('/contact_us')
 def contact_us_page():
     return render_template('contact_us.html')
-
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
@@ -963,7 +954,6 @@ def submit_contact_us():
 
     return redirect('/contact_us')
 
-
 @app.route('/points_system')
 def points_system():
     # Initialize session variables if not set
@@ -985,30 +975,66 @@ def points_system():
 
     return render_template('points_system.html', points=session['points'], streak=session['streak'])
 
-
 @app.route('/spin', methods=['POST'])
 def spin():
     import random
 
-    # Ensure the points session variable exists, default to 0 if not
-    if 'points' not in session:
-        session['points'] = 0
-
-        # Spin the wheel and get a random outcome
+    # Spin the wheel and get random points
     outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
     result = random.choice(outcomes)
 
-    # Add the spin result to the current points in session
+    # Update points in session
     session['points'] += result
 
-
-    # Ensure session is updated
-    session.modified = True
-
-    # Return the result and the updated points as a JSON response
-    return jsonify({'result': result, 'points': session['points']})
+    return {'result': result, 'points': session['points']}
 
 
+@app.route('/download_receipt/<int:order_id>')
+def download_receipt(order_id):
+    # Generate receipt (this can be a PDF or text file)
+    receipt_file = generate_receipt(order_id)
+
+    # Send the receipt file for download
+    return send_file(receipt_file, as_attachment=True)
+
+
+def generate_receipt(order_id):
+    # Retrieve the order details
+    order = Order.query.get_or_404(order_id)
+
+    # Retrieve the items in the order, including inventory details
+    order_items = OrderItem.query.filter_by(order_id=order.id).all()
+
+    # Calculate total price and prepare the receipt content
+    receipt_content = f"Receipt for Order {order_id}\n\n"
+    receipt_content += f"Date: {order.date}\n"
+    receipt_content += f"Time: {order.time}\n"
+    receipt_content += f"Location: {order.location}\n"
+    receipt_content += "\nItems Ordered:\n"
+
+    total_price = 0  # Initialize total price
+
+    # Loop through each order item and fetch the associated inventory item
+    for item in order_items:
+        inventory_item = InventoryItem.query.get(item.inventory_item_id)  # Get the associated inventory item
+        if inventory_item:
+            item_total_cost = item.quantity * item.price
+            total_price += item_total_cost  # Add to the total cost
+
+            # Add item details to the receipt content
+            receipt_content += f"{inventory_item.name} - {item.quantity} x ${item.price:.2f} = ${item_total_cost:.2f}\n"
+        else:
+            receipt_content += f"Unknown Item - {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}\n"
+
+    # Add the total price at the end of the receipt
+    receipt_content += f"\nTotal Cost: ${total_price:.2f}"
+
+    # Save the receipt content to a text file
+    receipt_file = f"receipt_{order_id}.txt"
+    with open(receipt_file, 'w') as f:
+        f.write(receipt_content)
+
+    return receipt_file
 
 
 if __name__ == '__main__':
