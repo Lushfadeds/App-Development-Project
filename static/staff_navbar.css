@@ -1,0 +1,38 @@
+:root {
+    --primary-color: #D4B59E;
+    --secondary-color: #8C5A3F;
+    --background-color: #D4B59E;
+    --accent-color: #E7D3C5;
+    --text-color: #2B1D0E;
+}
+
+.sidebar {
+    background-color: var(--primary-color);
+    padding: 20px;
+    max-width: 15%;
+}
+
+h5 {
+    font-size: 1.6rem;
+}
+
+.sidebar .fa-solid {
+    font-size: 1rem;
+    padding-right: 10px;
+}
+
+.sidebar a {
+    display: block;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 10px 0;
+}
+
+.sidebar a:hover {
+    color: var(--secondary-color);
+    transition: 0.25s;
+}
+
+.active {
+    border-right: 2px solid var(--text-color);
+}

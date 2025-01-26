@@ -153,10 +153,10 @@ with app.app_context():
         print("Existing inventory found in the database.")
 
 create_dash_app(app)
-#with app.app_context():
-#    data = User.query.all()
-#    for i in data:
-#        print(f"{i.id}, {i.name}, {i.role}")
+with app.app_context():
+    data = User.query.all()
+    for i in data:
+        print(f"{i.id}, {i.name}, {i.role}")
 
 
 @app.route('/staff_analytics')
