@@ -1,154 +1,44 @@
-/* General styles for the dashboard */
-.dashboard-container {
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    background-color: #f8f9fa;
+:root {
+    --primary-color: #D4B59E;
+    --secondary-color: #8C5A3F;
+    --background-color: #D4B59E;
+    --accent-color: #E7D3C5;
+    --text-color: #2B1D0E;
 }
 
-h2 {
-    color: #333;
-    font-size: 24px;
-    margin-bottom: 10px;
-}
-
-p {
-    color: #555;
-    margin-bottom: 20px;
-}
-
-.stats-section {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-
-.stat-card {
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
-    width: 45%;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card h3 {
-    font-size: 18px;
-    color: #333;
-    margin-bottom: 10px;
-}
-
-.stat-card p {
-    font-size: 24px;
-    color: #007bff;
-}
-
-button {
-    background-color: #007bff;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 12px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-.notifications {
-    margin-bottom: 20px;
-}
-
-.notifications h3 {
-    font-size: 18px;
-    margin-bottom: 10px;
-}
-
-.notifications button {
-    margin-top: 10px;
-}
-
-.orders {
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.orders h3 {
-    font-size: 18px;
-    margin-bottom: 10px;
-}
-
-.orders table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.orders table th,
-.orders table td {
-    text-align: left;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.orders table th {
-    background-color: #f1f1f1;
-    font-weight: bold;
-}
-
-.orders table td a {
-    background-color: #007bff;
-    color: #ffffff;
+.card-body a {
     text-decoration: none;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 14px;
+    color: var(--text-color);
+    background-color: var(--secondary-color)
 }
 
-.orders table td a:hover {
-    background-color: #0056b3;
+.card-body a:hover {
+    color: var(--accent-color);
+    background-color: var(--secondary-color);
+    transition: 0.25s;
+}
+h5 {
+    font-size: 1.6rem;
 }
 
-/* Sidebar styling (optional if you want the left panel) */
-.sidebar {
-    width: 250px;
-    background-color: #343a40;
-    color: #ffffff;
-    padding: 20px;
-    position: fixed;
-    height: 100%;
-    top: 0;
-    left: 0;
-
+.card-text {
+    font-size: 1.2rem;
 }
 
-.sidebar a {
-    color: #ffffff;
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 5px;
+.card-body .fa-solid {
+    font-size: 2rem;
 }
 
-.sidebar a:hover {
-    background-color: #495057;
+.revenue {
+    font-size: 2.5rem;
 }
 
-.sidebar .profile {
-    text-align: center;
-    margin-bottom: 20px;
+.pfp {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
 }
 
-.sidebar .profile img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin-bottom: 10px;
+.btn {
+    border-style: none;
 }
-.container-fluid{
-    padding:0px;}

@@ -10,19 +10,19 @@
         </div>
         <div class="form-group">
             <label for="stock">Stock QTY*</label>
-            <input type="number" id="stock" name="stock" placeholder="Enter stock quantity" required min="1">
+            <input type="number" id="stock" name="stock" placeholder="Enter stock quantity" required min="1" title="Stock quantity must be at least 1.">
         </div>
         <div class="form-group">
             <label for="picture">Picture*</label>
-            <input type="file" id="picture" name="picture" accept=".jpg,.jpeg,.png" required>
+            <input type="file" id="picture" name="picture" accept=".jpg,.jpeg,.png" required title="Please upload an image file in .jpg, .jpeg, or .png format.">
         </div>
         <div class="form-group">
             <label for="expiration_date">Expiration Date</label>
-            <input type="date" id="expiration_date" name="expiration_date">
+            <input type="date" id="expiration_date" name="expiration_date" title="Expiration date must be today or later.">
         </div>
         <div class="form-group">
             <label for="category">Category*</label>
-            <select id="category" name="category" required>
+            <select id="category" name="category" required title="Please select a category.">
                 <option value="snacks">Traditional Snacks & Candy</option>
                 <option value="desserts">Desserts</option>
                 <option value="biscuits">Biscuits</option>
@@ -34,7 +34,7 @@
         </div>
         <div class="form-group">
            <label for="price">Price*</label>
-            <input type="number" id="price" name="price" step="0.01" placeholder="Enter item price" required>
+            <input type="number" id="price" name="price" step="0.01" placeholder="Enter item price" required min="0.01" title="Price must be a positive number.">
 
         </div>
         <div class="form-group">

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock%}
+{% block content %}
+
+<link href="{{ url_for('static', filename='update_analytics.css') }}" rel="stylesheet">
+
+
+<div class="overlay-content">
+    <div class="overlay-header">
+        <h2>Update Statistics</h2>
+        <button class="close-btn" id="close-btn">&times;</button>
+    </div>
+    <form method="POST" class="overlay-form px-3 action=">
+        <div>
+            <label>Products Sold:</label>
+            <input type="number" name="products_sold" value="{{ stat.products_sold }}" required>
+            <br>
+        </div>
+        <div>
+            <label>Daily Sale:</label>
+            <input type="number" name="daily_sale" value="{{ stat.daily_sale }}" required>
+            <br>
+        </div>
+        <div>
+            <label>Daily Customers:</label>
+            <input type="number" name="daily_customers" value="{{ stat.daily_customers }}" required>
+            <br>
+        </div>
+        <div>
+            <label>Daily Unique Customers:</label>
+            <input type="number" name="daily_unique_customers" value="{{ stat.daily_unique_customers }}" required>
+            <br>
+        </div>
+        <div>
+            <label>Money Spent Per Customer:</label>
+            <input type="number" name="money_spent_customer" value="{{ stat.money_spent_customer }}" required>
+            <br>
+        </div>
+        <button type="submit">Update</button>
+    </form>
+</div>
+
+{% endblock %}

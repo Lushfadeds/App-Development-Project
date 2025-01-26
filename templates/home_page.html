@@ -2,13 +2,12 @@
 
 {% block content %}
 <link href="{{ url_for('static', filename='homepage.css') }}" rel="stylesheet">
-    <div class="container mt-5">
-        <!-- Motto Section -->
-    <div class="motto">
+<div class="container mt-5">
+    <!-- Motto Section -->
+    <div class="motto-container">
         <img src="{{ url_for('static', filename=motto) }}" class="img-fluid" alt="Motto Image">
+        <div class="motto-text">Where Community Meets Convenience.</div>
     </div>
-
-
 
     <!-- Product Section -->
     <div class="row mt-4">
@@ -16,11 +15,26 @@
         <div class="col-md-4 mb-3">
             <div class="product-card">
                 <img src="{{ url_for('static', filename=product.image_url) }}" class="img-fluid" alt="{{ product.name }}">
-                <h5 class="mt-2">{{ product.name }}</h5>
+                <h5 class="mt-2">Our Best Product</h5>
             </div>
         </div>
         {% endfor %}
+
+        <div class="col-md-4 mb-3">
+            <div class="team-card">
+                <img src="{{ url_for('static', filename=team) }}" class="img-fluid" alt="Our Team">
+                <h5 class="mt-2">Meet Our Team</h5>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="community-card">
+                <img src="{{ url_for('static', filename=community) }}" class="img-fluid" alt="Community Engagement">
+                <h5 class="mt-2">Community Events</h5>
+            </div>
+        </div>
     </div>
+
 
     <!-- Our Story Section -->
     <div class="row mt-4">
@@ -30,8 +44,8 @@
         <div class="col-md-6 d-flex align-items-center">
             <div class="our-story">
                 <h4>Our Story</h4>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum aliquet risus a dapibus fringilla.</p>
-                <button class="btn btn-primary">Find out more</button>
+                <p>Every great journey begins with a story, and ours is one of passion, perseverance, and purpose. From humble beginnings to where we are today, we’ve built something that goes beyond products—it's about connections and experiences. Curious about what drives us? Discover the heart and soul of our journey.</p>
+                <a href="/aboutus" class="btn-link">Find out more</a>
             </div>
         </div>
     </div>

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock%}
+{% block content %}
+
+<div class="container my-5">
+    <h1>Analytics</h1>
+
+    <form action="/add_graph" method="POST">
+        <div>
+            <label for="products_sold">Products Sold Today:</label>
+            <input type="number" id="products_sold" name="products_sold" required>
+            <br>
+        </div>
+
+        <div>
+            <label for="sales_today">Sales Today: </label>
+            <input type="number" id="sales_today" name="sales_today" required>
+            <br>
+        </div>
+
+        <div>
+            <label for="customers_today">Customers Today: </label>
+            <input type="number" id="customers_today" name="customers_today" required>
+            <br>
+        </div>
+
+        <div>
+            <label for="unique_customers_today">Unique Customers Today: </label>
+            <input type="number" id="unique_customers_today" name="unique_customers_today" required>
+            <br>
+        </div>
+
+        <div>
+            <label for="money_spent_customer">Average Money Spent Per Customer: </label>
+            <input type="number" id="money_spent_customer" name="money_spent_customer" required>
+            <br>
+        </div>
+
+
+        <button type="submit">Create Graph</button>
+
+
+    </form>
+
+    <h1>Record List</h1>
+
+    <table border="2">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Products Sold</th>
+                <th>Daily Sale</th>
+                <th>Daily Customers</th>
+                <th>Daily Unique Customers</th>
+                <th>Money Spent Per Customer</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in graph_data %}
+            <tr>
+                <td>{{ stat.id }}</td>
+                <td>{{ stat.products_sold }}</td>
+                <td>{{ stat.daily_sale }}</td>
+                <td>{{ stat.daily_customers }}</td>
+                <td>{{ stat.daily_unique_customers }}</td>
+                <td>{{ stat.money_spent_customer }}</td>
+                <td class="btns">
+                    <a href="/update_analytics/{{ stat.id }}" id="edit-btn">
+                        <button>Edit</button>
+                    </a>
+                    <form action="/delete_analytics/{{ stat.id }}" method="POST">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- DONT WORRY
+<div id="overlay" class="overlay">
+    <div class="overlay-content">
+        <div class="overlay-header">
+            <h2>Update Statistics</h2>
+            <button class="close-btn" id="close-btn">&times;</button>
+        </div>
+        <form method="POST" class="overlay-form px-3">
+            <div>
+                <label for="products_sold">Products Sold Today: </label>
+                <input type="text" id="name" name="name" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Sales Today: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Customers Today: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Unique Customers Today: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <div>
+                <label for="value">Average Money Spent Per Customer: </label>
+                <input type="text" id="value" name="value" required>
+                <br>
+            </div>
+
+            <button type="submit">Update</button>
+
+        </form>
+    </div>
+</div> -->
+{% endblock %}

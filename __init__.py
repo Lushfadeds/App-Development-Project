@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
+from dashboard import create_dash_app
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -24,7 +25,9 @@ def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
-    'orders': 'sqlite:///orders.db'
+    'orders': 'sqlite:///orders.db',
+    'statistics': 'sqlite:///statistics.db',
+    'user': 'sqlite:///user.db',
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -35,6 +38,16 @@ class Reward(db.Model):
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+
+
+class Stats(db.Model):
+    __bind_key__ = 'statistics'
+    id = db.Column(db.Integer, primary_key=True)
+    products_sold = db.Column(db.Integer, nullable=False)
+    daily_sale = db.Column(db.Integer, nullable=False)
+    daily_customers = db.Column(db.Integer, nullable=False)
+    daily_unique_customers = db.Column(db.Integer, nullable=False)
+    money_spent_customer = db.Column(db.Integer, nullable=False)
 
 
 with app.app_context():
@@ -54,6 +67,7 @@ class InventoryItem(db.Model):
 
 
 class User(db.Model):
+    __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -140,18 +154,97 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
+create_dash_app(app)
+with app.app_context():
+    data = User.query.all()
+    for i in data:
+        print(f"{i.id}, {i.name}, {i.role}")
+
+
+@app.route('/staff_analytics')
+def staff_analytics():
+    return render_template('staffanalytics.html', active_page='staffanalytics')
+
+@app.route('/add_graph', methods=['POST'])
+def add_graph():
+    product = request.form['products_sold']
+    sales_today = request.form['sales_today']
+    customers_today = request.form['customers_today']
+    unique_customers_today = request.form['unique_customers_today']
+    money_spent_customer = request.form['money_spent_customer']
+
+    lowest_id = get_lowest_unused_id()
+
+    new_graph = Stats(id=lowest_id,
+                      products_sold=product,
+                      daily_sale=sales_today,
+                      daily_customers=customers_today,
+                      daily_unique_customers=unique_customers_today,
+                      money_spent_customer=money_spent_customer)
+    db.session.add(new_graph)
+    db.session.commit()
+    flash('Statistics Added Successfully!')
+    return redirect(url_for('analytics'))
+
+
+def get_lowest_unused_id():
+    existing_ids = [stat.id for stat in Stats.query.with_entities(Stats.id).all()]
+    if not existing_ids:
+        return 1
+
+    for i in range(1, max(existing_ids) + 2):
+        if i not in existing_ids:
+            return i
+
+@app.route('/analytics')
+def analytics():
+    graph = Stats.query.all()
+    for i in graph:
+        print(i)
+    return render_template('analytics.html', graph_data=graph)
+
+@app.route('/update_analytics/<int:id>', methods=['GET', 'POST'])
+def update(id:int):
+    stat = Stats.query.get_or_404(id)
+    if request.method == "POST":
+        stat.products_sold = request.form['products_sold']
+        stat.daily_sale = request.form['daily_sale']
+        stat.daily_customers = request.form['daily_customers']
+        stat.daily_unique_customers = request.form['daily_unique_customers']
+        stat.money_spent_customer = request.form['money_spent_customer']
+
+        db.session.commit()
+        flash("Analytic updated successfully!", "success")
+        return redirect(url_for('analytics'))
+
+    graph = Stats.query.all()
+    return render_template('update_analytics.html', graph_data=graph, stat=stat)
+
+@app.route('/delete_analytics/<int:id>', methods=['POST'])
+def delete(id):
+    stat = Stats.query.get_or_404(id)
+    db.session.delete(stat)
+    db.session.commit()
+    flash('Analytic deleted successfully', 'success')
+
+    return redirect(url_for('analytics'))
+
+
+@app.route('/aboutus')
+def aboutus():
+    return render_template('aboutus.html')
 
 
 @app.route('/')
 def home():
-    products = [
-        {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"},
-        {"name": "Chocolate Chip", "image_url": "chocolate_chip.jpg"},
-        {"name": "Tin Biscuits", "image_url": "plates.jpg"}
-    ]
+    best_products = [
+        {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
+        ]
+    team = "team.jpg"
+    community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=products, our_story_image=our_story_image, motto=motto)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -261,14 +354,14 @@ def rewards_page():
 
 @app.route("/inventory", methods=["GET"])
 def inventory_page():
-    category = request.args.get("category", "")
+    category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
     query = InventoryItem.query
 
     if search_query:
         query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
-    if category:
+    if category and category != "all":
         query = query.filter_by(category=category)
     if filter_option == "low_stock":
         query = query.filter(InventoryItem.stock < 10)
@@ -289,7 +382,7 @@ def edit_inventory_item(item_id):
         if "delete" in request.form:
             db.session.delete(item)
             db.session.commit()
-            flash(f"Item '{item.name}' has been deleted successfully!", "success")
+            flash(f"Item '{item.name}' has been deleted successfully!")
             return redirect(url_for("inventory_page"))
 
         # Update item details
@@ -309,7 +402,7 @@ def edit_inventory_item(item_id):
                 item.image_url = filename
 
         db.session.commit()
-        flash('Item updated successfully!', 'success')
+        flash('Item updated successfully!')
         return redirect(url_for("inventory_page"))
 
     return render_template("edit_item.html", item=item)
@@ -369,7 +462,7 @@ def delete_inventory_item(item_id):
     db.session.commit()
 
     # Flash a success message
-    flash(f"Item '{item.name}' has been deleted successfully!", "success")
+    flash(f"Item '{item.name}' has been deleted successfully!")
     return redirect(url_for("inventory_page"))
 
 
@@ -749,7 +842,7 @@ def staff_dashboard():
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
@@ -770,6 +863,13 @@ def customer_account():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Check if the user is already logged in
+    if 'role' in session:
+        if session['role'] == 'staff':
+            return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
+        elif session['role'] == 'customer':
+            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -780,7 +880,6 @@ def login():
             session['user_id'] = user.id
             session['role'] = user.role
             session['email'] = user.email  # Ensure this is set
-            print(f"Session set: {session}")  # Debug
 
             # Redirect based on role
             if user.role == 'staff':
@@ -788,10 +887,22 @@ def login():
             elif user.role == 'customer':
                 return redirect(url_for('customer_account'))
         else:
-            flash('Invalid email or password.', 'danger')
+            session.clear()
+            flash('Invalid email or password. Please try again.', 'danger')
             return redirect(url_for('login'))
 
     return render_template('login.html')
+@app.route('/logout', methods=['POST'])
+def logout():
+    # Clear the session
+    session.clear()  # This will remove all session data
+
+    # Flash message (optional)
+    flash("You have been logged out successfully.", "success")
+
+    # Redirect to login page
+    return redirect(url_for('login'))
+
 
 @app.route('/forgot_password')
 def forgot_password():
@@ -828,45 +939,39 @@ def submit_contact_us():
 
     return redirect('/contact_us')
 
-
-user_data = {
-    "weekly_points": [0, 0, 0, 0, 0, 0, 0],
-    "total_points": 0
-}
-
-
 @app.route('/points_system')
-def points_system_page():
-    return render_template('points_system.html')
+def points_system():
+    # Initialize session variables if not set
+    if 'points' not in session:
+        session['points'] = 0
+    if 'last_login' not in session:
+        session['last_login'] = None
+    if 'streak' not in session:
+        session['streak'] = 0
 
+    # Check if the user logs in on a new day
+    today = datetime.now().date()
+    last_login = session['last_login']
 
-@app.route('/collect-points', methods=['POST'])
-def collect_points():
+    if last_login is None or last_login != str(today):
+        session['last_login'] = str(today)
+        session['streak'] += 1
+        session['points'] += 2  # Add points for daily login
 
-    day = request.json.get('day')
-    if user_data["weekly_points"][day] == 0:
-        user_data["weekly_points"][day] = 2
-        user_data["total_points"] += 2
-        return jsonify(
-            {"success": True, "message": "You collected 2 points!", "total_points": user_data["total_points"]})
-    return jsonify({"success": False, "message": "Points already collected for today!"})
+    return render_template('points_system.html', points=session['points'], streak=session['streak'])
 
-
-@app.route('/spin-wheel', methods=['POST'])
-def spin_wheel():
+@app.route('/spin', methods=['POST'])
+def spin():
     import random
-    options = ["3 Points", "2 Points", "5 Points", "Try Again", "Spin Again", "0 Points", "2 Points", "House Loses"]
-    result = random.choice(options)
 
-    # Add points only if the result includes "Points"
-    if "Points" in result:
-        points = int(result.split()[0])
-        user_data["total_points"] += points
+    # Spin the wheel and get random points
+    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
+    result = random.choice(outcomes)
 
-    return jsonify({
-        "message": result,
-        "total_points": user_data["total_points"]
-    })
+    # Update points in session
+    session['points'] += result
+
+    return {'result': result, 'points': session['points']}
 
 if __name__ == '__main__':
     app.run(debug=True)
