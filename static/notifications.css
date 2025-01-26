@@ -1,97 +1,104 @@
-:root {
-    --bs-btn-color: #ffffff;
-    --bs-btn-bg: #8c5a40; /* Brownish tone */
-    --bs-btn-border-color: #ffffff;
-    --bs-btn-hover-color: #2b1d0e; /* Dark brown */
-    --bs-btn-hover-bg: #D4B59E; /* Lighter beige for hover */
-    --bs-btn-hover-border-color: #ffffff;
-    --bs-btn-focus-shadow-rgb: 49, 132, 253;
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: #8c5a40;
-    --bs-btn-active-border-color: #0a53be;
-    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: #8c5a40; /* Brownish disabled */
-    --bs-btn-disabled-border-color: #8c5a40;
+/* Table Styles for Notifications */
+.table {
+    background-color: #f8f9fa; /* Light gray background for the table */
+    border: 1px solid #e3e3e3; /* Border color similar to image */
+    border-radius: 5px;
+    margin-top: 20px;
 }
 
-/* Custom Button Style for the Status Buttons */
-.status-btn {
-    display: inline-block;
-    padding: 0.375rem 0.75rem;
-    font-size: 1rem;
-    font-weight: 400;
+.table th {
+    background-color: #6c757d; /* Dark gray background for header */
+    color: #ffffff; /* White text for header */
+    font-weight: bold; /* Bold text for headers */
     text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-    border-radius: 0.25rem;
-    color: var(--bs-btn-color);
-    background-color: var(--bs-btn-bg);
-    border: 1px solid var(--bs-btn-border-color);
-    transition: background-color 0.2s, border-color 0.2s;
 }
 
-/* Hover State */
-.status-btn:hover {
-    color: var(--bs-btn-hover-color);
-    background-color: var(--bs-btn-hover-bg);
-    border-color: var(--bs-btn-hover-border-color);
+.table td {
+    background-color: #f1f1f1; /* Light gray background for rows */
+    color: #333333; /* Dark text color */
+    text-align: center;
 }
 
-/* Focus State */
-.status-btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 0.25rem rgba(var(--bs-btn-focus-shadow-rgb), 0.5);
+/* Make the total row bold and slightly larger text */
+.table tfoot td {
+    font-weight: bold;
+    font-size: 1.1rem;
+    background-color: #e9ecef; /* Slightly darker background */
 }
 
-/* Active State */
-.status-btn:active {
-    color: var(--bs-btn-active-color);
-    background-color: var(--bs-btn-active-bg);
-    border-color: var(--bs-btn-active-border-color);
-    box-shadow: var(--bs-btn-active-shadow);
+/* Apply a hover effect on table rows */
+.table tbody tr:hover {
+    background-color: #e2e6ea; /* Hover effect */
 }
 
-/* Disabled State */
-.status-btn:disabled {
-    color: var(--bs-btn-disabled-color);
-    background-color: var(--bs-btn-disabled-bg);
-    border-color: var(--bs-btn-disabled-border-color);
-    cursor: not-allowed;
-}
-/* For Accept and View Order buttons */
+/* Custom button for Accept and View Order */
 .btn-accept,
 .btn-view {
-    color: #ffffff; /* White text */
     background-color: #8c5a40; /* Brown background */
     border-color: #ffffff; /* White border */
+    color: #ffffff; /* White text */
+    padding: 0.5rem 1.5rem;
+    border-radius: 3px;
+    font-weight: bold;
+    text-transform: uppercase;
     transition: background-color 0.2s, border-color 0.2s;
+    width: 100%; /* Ensure both buttons take up the same width */
 }
 
+/* Hover effect for Accept and View Order */
 .btn-accept:hover,
 .btn-view:hover {
-    color: #2b1d0e; /* Dark brown text on hover */
     background-color: #D4B59E; /* Lighter brown on hover */
-    border-color: #ffffff; /* White border on hover */
+    border-color: #ffffff;
 }
 
-.btn-accept:focus,
-.btn-view:focus {
-    outline: none;
-    box-shadow: 0 0 0 0.25rem rgba(49, 132, 253, 0.5); /* Focus shadow */
-}
-
-.btn-accept:active,
-.btn-view:active {
+/* Ensure both buttons have the same width and no hover effect on 'Pending' */
+.status-btn {
+    background-color: #8c5a40;
     color: #fff;
-    background-color: #8c5a40; /* Maintain brown on active state */
-    border-color: #0a53be; /* Dark blue border */
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: default; /* Disable hover effect on pending */
+    width: auto; /* Make the width fit the content */
 }
 
-.btn-accept:disabled,
-.btn-view:disabled {
-    color: #fff;
-    background-color: #8c5a40; /* Disable button with the same brown color */
-    border-color: #8c5a40;
+/* Prevent hover effect on Pending status */
+.status-btn:hover {
+    background-color: #8c5a40; /* No hover effect */
+    cursor: default;
+}
+
+.status-btn:disabled {
+    background-color: #8c5a40;
     cursor: not-allowed;
+}
+/* Custom style for Pending status */
+.status-btn.pending {
+    background-color: #f8d7da; /* Light red background */
+    color: #721c24; /* Dark red text for better contrast */
+    border: 1px solid #f5c6cb; /* Light red border */
+    cursor: not-allowed; /* Ensure it looks non-clickable */
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+    border-radius: 0.25rem;
+    font-weight: normal;
+    width: auto; /* Make the width fit the content */
+}
+
+/* Remove hover effect for Pending */
+.status-btn.pending:hover {
+    background-color: #f8d7da; /* No hover effect */
+    cursor: not-allowed;
+}
+/* Ensure that everything inside the table cells is vertically and horizontally centered */
+table th, table td {
+    vertical-align: middle;  /* Vertically center content */
+    text-align: center;       /* Horizontally center content */
+}
+
+/* Optional: Add padding to make sure content doesn't touch cell borders */
+table td, table th {
+    padding: 0.75rem;  /* Adjust padding as needed */
 }
