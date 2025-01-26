@@ -1,34 +1,41 @@
 .inventory-page {
     display: flex;
-    height: 100%; /* Full height for content */
+    height: 100vh;
+
 }
 
 .sidebar {
-    width: 250px; /* Fixed width */
+    width: 20%; /* Fixed width */
     background-color: #f4f4f4;
     padding: 20px;
-    height: 100vh; /* Full height */
     overflow-y: auto;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 30px;
-    position: sticky;
-    top: 0;
+    gap: 40px;
 }
+
+.categories-section,
+.filter-section {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between items in the same section */
+}
+
 
 /* Categories Section */
 .categories-section h2,
 .filter-section h2 {
-    font-size: 18px;
+    font-size: 20px;
     margin-bottom: 15px;
 }
 
-.categories-section ul {
-    list-style: none;
+.categories-section ul,
+.filter-section form {
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin: 0;
 }
 
 categories-section ul li a {
@@ -37,10 +44,11 @@ categories-section ul li a {
     font-size: 14px;
 }
 
-.filter-section form {
+.filter-section form{
     display: flex;
     flex-direction: column;
     gap: 15px; /* Space between radio options */
+    
 }
 
 .filter-option {
@@ -50,7 +58,7 @@ categories-section ul li a {
 }
 
 .filter-option label {
-    font-size: 14px;
+    font-size: 15px;
     color: #333;
 }
 
@@ -62,11 +70,12 @@ categories-section ul li a {
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
+    margin-top: 15px;
 }
 
 .sidebar h2 {
     font-size: 18px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .sidebar ul {
@@ -75,8 +84,7 @@ categories-section ul li a {
 }
 
 .sidebar ul li {
-    font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .sidebar ul li a {
@@ -86,27 +94,23 @@ categories-section ul li a {
 
 /* Main Content Section */
 .inventory-section {
-    position: relative;
+    height: auto;
+    min-height: 100vh;
     flex-grow: 1; /* Take up remaining space */
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center horizontally */
-    justify-content: flex-start; /* Align content to the top */
     overflow-y: auto;
 }
 
 /* Search Bar */
-.search-bar form{
-    display: flex;
-    gap: 10px;
-    justify-content: center;
+.search-bar{
     width: 100%;
     max-width: 100%;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
-.search-bar input {
+.input-group {
     flex-grow: 1;
     padding: 12px 15px;
     border: 1px solid #ddd;
@@ -114,13 +118,29 @@ categories-section ul li a {
     width: 100%;
 }
 
-.search-bar button {
-    padding: 12px 20px;
-    background-color: #333;
-    color: white;
+.input-group span {
+    background-color: white;
+}
+
+.input-group-text {
+    background-color: #f9f9f9; /* Match your color theme */
     border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    padding: 0.5rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+}
+
+.form-control {
+    border: none;
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none; /* Remove default outline */
+    box-shadow: none; /* Remove default shadow */
 }
 
 /* Inventory Grid */
@@ -129,8 +149,8 @@ categories-section ul li a {
     grid-template-columns: repeat(4, 1fr); /* 4 items per row */
     gap: 20px;
     width: 100%;
-    max-width: 1200px;
     padding: 0 10px;
+    overflow-y: auto;
 }
 
 /* Inventory Items */
@@ -160,7 +180,7 @@ categories-section ul li a {
     margin-bottom: 10px;
 }
 
-.inventory-item .edit-btn {
+.change-item{
     background-color: #8c5a40;
     font-size: 12px;
     color: white;
@@ -170,7 +190,14 @@ categories-section ul li a {
     padding: 5px;
 }
 
-.inventory-item .edit-btn:hover{
+.edit-btn {
+    font-size: 15px;
+    color: white;
+    text-decoration: none;
+    padding: 5px;
+}
+
+.change-item:hover{
     background-color: #D4B59E;
     color: #ffffff;
 }
@@ -184,15 +211,13 @@ categories-section ul li a {
 }
 
 .action-bar{
-   position: absolute;
-   bottom: 20px;
-   left: 20px;
    z-index: 1000;
 }
 
 .add-item-btn{
-    padding: 10px 5px;
+    padding: 10px 15px;
     background-color: #333;
+    text-decoration: none;
     color: white;
     border: none;
     border-radius: 20px;

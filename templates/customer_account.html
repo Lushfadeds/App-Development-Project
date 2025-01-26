@@ -2,6 +2,12 @@
 {% block content %}
 <div class="account-container">
     <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
+     <!-- Logout Button -->
+    <div class="logout-section">
+        <form method="POST" action="{{ url_for('logout') }}">
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    </div>
     
     <div class="stats-section">
         <div class="stat-card">
