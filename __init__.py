@@ -946,6 +946,9 @@ def forgot_password():
 def is_valid_email(email):
     if "@" in email and "." in email.split("@")[-1]:
         return True
+    # "." in email.split("@")[-1]:
+    # This checks if there is a . (dot) in the domain part of the email (the part after @).
+    # The dot is a common character in email domain names, e.g., in example.com, .com is the domain part.
     return False
 
 feedback_data = []  # In-memory storage for feedback
@@ -983,9 +986,11 @@ def submit_contact_us():
 
     return redirect('/contact_us')
 
+
 @app.route('/contact_us_data')
 def contact_us_data():
     return render_template('contact_us_data.html', feedback_list=feedback_data, reply_list=reply_data)
+
 
 @app.route('/reply_to_feedback', methods=['POST'])
 def reply_to_feedback():
