@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-
 <link href="{{ url_for('static', filename='order_summary.css') }}" rel="stylesheet">
+
 <main class="order-summary-page">
     <section class="order-details">
         <h2>Order ID: {{ order.id }}</h2>
@@ -10,16 +10,25 @@
         <p><strong>Location:</strong> {{ order.location }}</p>
     </section>
 
-    <section class="customer-info">
-        <h3>Customer Info</h3>
-        <p><strong>Name:</strong> {{ order.customer_name or "Not Provided" }}</p>
-        <p><strong>Contact Number:</strong> {{ order.customer_contact or "Not Provided" }}</p>
-        <p><strong>Email:</strong> {{ order.customer_email or "Not Provided" }}</p>
-    </section>
+    <div class="row">
+        <!-- Shop Info Section -->
+        <section class="customer-info col-md-6">
+            <h3>Customer Info</h3>
+            <p><strong>Name:</strong> {{ order.customer_name or "Pending" }}</p>
+            <p><strong>Contact Number:</strong> {{ order.customer_contact or "Pending" }}</p>
+            <p><strong>Email:</strong> {{ order.customer_email or "Pending" }}</p>
+        </section>
+
+        <!-- Comments/Request Section -->
+        <section class="comments-request col-md-6">
+            <h3>Comments/Request</h3>
+            <p>{{ order.comments or "None" }}</p>
+        </section>
+    </div>
 
     <section class="items-ordered">
         <h3>Items Ordered</h3>
-        <table>
+        <table class="table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -27,63 +36,76 @@
                     <th>Quantity</th>
                     <th>Cost per item</th>
                     <th>Total</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in items_with_inventory %}
-                <tr>
+                <tr class="{% if item.order_item.quantity == 0 %}gray-out{% endif %}">
                     <td>{{ item.order_item.id }}</td>
                     <td>{{ item.inventory_name }}</td>
                     <td>{{ item.order_item.quantity }}</td>
                     <td>${{ "%.2f"|format(item.order_item.price) }}</td>
-                    <td>${{ "%.2f"|format(item.total_cost) }}</td>
                     <td>
-                        <!-- Edit Button -->
-                        <button
-                            class="btn btn-primary btn-sm edit-btn"
-                            data-item-id="{{ item.order_item.id }}"
-                            data-current-quantity="{{ item.order_item.quantity }}">
-                            Edit
-                        </button>
+                        <div style="display: flex; justify-content: space-evenly; align-items: center;">
+                            <span>${{ "%.2f"|format(item.total_cost) }}</span>
+                            <i class="fas fa-edit" style="cursor: pointer; color: #007bff;"
+                               data-item-id="{{ item.order_item.id }}"
+                               data-current-quantity="{{ item.order_item.quantity }}"
+                               title="Edit Quantity"></i>
+                        </div>
                     </td>
                 </tr>
+
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4"><strong>Total Cost (Not inclusive of GST and service charge):</strong></td>
+                    <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
+                </tr>
+            </tfoot>
         </table>
-    </section>
 
-    <!-- Modal for Edit -->
-    <div id="editModal" class="modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <form id="editForm" method="POST" action="{{ url_for('edit_order_item', order_id=order.id) }}">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Quantity</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="item_id" id="modal-item-id">
-                        <div class="form-group">
-                            <label for="new_quantity">New Quantity</label>
-                            <input type="number" class="form-control" id="new_quantity" name="new_quantity" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="reason">Reason</label>
-                            <textarea class="form-control" id="reason" name="reason" required></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
+        <!-- Download Section (Text and Button Side by Side) -->
+        <div class="row">
+            <div class="col-md-8">
+                <p class="text-start">Click here to download a full summary of the receipt:</p>
+            </div>
+            <div class="col-md-4">
+                <a href="{{ url_for('download_receipt', order_id=order.id) }}" class="btn custom-download-btn w-100">Download</a>
             </div>
         </div>
-    </div>
+
+    </section>
 </main>
+
+<!-- Modal for Edit -->
+<div id="editModal" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editForm" method="POST" action="{{ url_for('edit_order_item', order_id=order.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Quantity</h5>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="item_id" id="modal-item-id">
+                    <div class="form-group">
+                        <label for="new_quantity">New Quantity</label>
+                        <input type="number" class="form-control" id="new_quantity" name="new_quantity" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Reason</label>
+                        <textarea class="form-control" id="reason" name="reason" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -91,20 +113,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemIdInput = document.getElementById('modal-item-id');
     const newQuantityInput = document.getElementById('new_quantity');
 
-    document.querySelectorAll('.edit-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            const itemId = button.dataset.itemId;
-            const currentQuantity = parseInt(button.dataset.currentQuantity);
+    // Add event listener to each edit icon
+    document.querySelectorAll('.fa-edit').forEach(icon => {
+        icon.addEventListener('click', () => {
+            const itemId = icon.dataset.itemId;
+            const currentQuantity = parseInt(icon.dataset.currentQuantity);
 
             itemIdInput.value = itemId;
             newQuantityInput.value = currentQuantity;
-            newQuantityInput.setAttribute('max', currentQuantity); // Set the max value
-            newQuantityInput.setAttribute('min', 1); // Ensure it cannot go below 1
+            newQuantityInput.setAttribute('max', currentQuantity + 100); // Allow increasing the quantity beyond the current
+            newQuantityInput.setAttribute('min', 0); // Allow quantity to be 0
 
             $(editModal).modal('show');
         });
     });
 
+    // Prevent quantity input from exceeding the max quantity if needed
     newQuantityInput.addEventListener('input', () => {
         const maxQuantity = parseInt(newQuantityInput.getAttribute('max'));
         if (parseInt(newQuantityInput.value) > maxQuantity) {
@@ -113,6 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
 </script>
+
 {% endblock %}
