@@ -160,6 +160,12 @@ with app.app_context():
     for i in data:
         print(f"{i.id}, {i.name}, {i.role}")
 
+@app.context_processor
+def inject_user():
+    user_id = session.get('user_id')
+    return {'user': user_id}
+
+
 
 @app.route('/staff_analytics')
 def staff_analytics():
@@ -285,7 +291,7 @@ def register():
 @app.route('/rewards_index')
 def rewards_index():
     rewards = Reward.query.all()
-    return render_template('rewards_index.html', rewards=rewards)
+    return render_template('rewards_index.html', rewards=rewards, active_page='rewards')
 
 
 @app.route('/create_rewards', methods=['GET', 'POST'])
