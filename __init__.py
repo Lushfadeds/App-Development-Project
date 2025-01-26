@@ -40,6 +40,8 @@ class Reward(db.Model):
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+    # the Reward class defines a db model for the rewards table, for a unique id
+    # , a required name, the points_required to claim the reward, and an optional description.
 
 
 class Stats(db.Model):
@@ -67,17 +69,19 @@ class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False) # no two users can have the same email
+    password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+    # hashes the user’s password using generate_password_hash and stores it in the password_hash field.
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    # returns True if the password is correct, False otherwise.
 
 
 class Customer(db.Model):
@@ -285,6 +289,8 @@ def register():
 @app.route('/rewards_index')
 def rewards_index():
     rewards = Reward.query.all()
+    # query Reward model (in rewards.db), retrieves all rows using the all() method. \
+    # The result is stored in the rewards variable, which will be a list of Reward objects.
     return render_template('rewards_index.html', rewards=rewards)
 
 
@@ -295,11 +301,15 @@ def create_rewards():
         points_required = request.form['points_required']
         description = request.form['description']
         new_reward = Reward(name=name, points_required=points_required, description=description)
+        #  creates a new instance of the Reward model
         db.session.add(new_reward)
+        # adds new Reward object to the session
         db.session.commit()
+        #  save  new reward to the rewards table
         flash("Reward created successfully!", "success")
         return redirect(url_for('rewards_index'))
-    return render_template('create_rewards.html')
+
+    return render_template('create_rewards.html') # for GET request method
 
 
 @app.route('/update_rewards/<int:id>', methods=['GET', 'POST'])
@@ -318,6 +328,9 @@ def update_rewards(id):
 @app.route('/delete_rewards/<int:id>')
 def delete_rewards(id):
     reward = Reward.query.get_or_404(id)
+    # querie Reward model, trying to find a reward with the given id.
+    # get_or_404(id) retrieves the reward with the specified id.
+    # If no reward is found with that id, it will automatically return a 404 error page (not found).
     db.session.delete(reward)
     db.session.commit()
     flash("Reward Deleted successfully!", "success")
@@ -325,6 +338,7 @@ def delete_rewards(id):
 
 
 user_points = 8888
+# hardcoded, yet to be done
 
 
 @app.route('/rewards', methods=['GET', 'POST'])
@@ -333,10 +347,13 @@ def rewards_page():
     message = None
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
+        # retrieves id, which corresponds to the reward the user wants to redeem.
         reward = Reward.query.get(reward_id)
 
         if reward and user_points >= reward.points_required:
+            # whether reward exist and user has enough points to redeem
             user_points -= reward.points_required
+            # deduction
             message = f"Successfully redeemed {reward.name}!"
         else:
             message = "You don't have enough points to redeem this reward."
@@ -349,6 +366,7 @@ def rewards_page():
         user_points=user_points,
         message=message
     )
+    # renders the rewards.html template and passes the information to the template
 
 
 @app.route("/inventory", methods=["GET"])
@@ -898,6 +916,7 @@ def customer_account():
 def login():
     # Check if the user is already logged in
     if 'role' in session:
+        # for authentication purposes
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
         elif session['role'] == 'customer':
@@ -905,13 +924,20 @@ def login():
                 url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
 
     if request.method == 'POST':
+        # email, password processed
         email = request.form.get('email')
         password = request.form.get('password')
         user = User.query.filter_by(email=email).first()
+        # queries the User model to find a user with the provided email.
+        # The first() method retrieves the first result, or None if no user is found.
 
         if user and user.check_password(password):
+            # check user exists and if password enters matches stored password hash
+            # using the check_password method
+            # authentication purposes
             # Set session variables
             session['user_id'] = user.id
+            # keep track of logged-in user in session
             session['role'] = user.role
             session['email'] = user.email  # Ensure this is set
 
@@ -929,9 +955,9 @@ def login():
 @app.route('/logout', methods=['POST'])
 def logout():
     # Clear the session
-    session.clear()  # This will remove all session data
+    session.clear()  # removess all session data
 
-    # Flash message (optional)
+    # Flash message
     flash("You have been logged out successfully.", "success")
 
     # Redirect to login page
@@ -941,6 +967,7 @@ def logout():
 @app.route('/forgot_password')
 def forgot_password():
     # Implement forgot password logic here
+    # hardcodes yet to be done
     return 'Forgot Password Page...'
 
 def is_valid_email(email):
@@ -953,6 +980,7 @@ def is_valid_email(email):
 
 feedback_data = []  # In-memory storage for feedback
 reply_data = []  # In-memory storage for replies
+# stored in a list for now, shifting to db
 @app.route('/contact_us')
 def contact_us_page():
     return render_template('contact_us.html')
@@ -964,13 +992,14 @@ def submit_contact_us():
     email = request.form.get('email')
     message = request.form.get('message')
 
+    # validations below:
     if not feedback_type:
         flash('Please select a feedback type.', 'danger')
-    elif not full_name or len(full_name) < 3:
+    elif not full_name or len(full_name) < 3: #too short for a name, will be prompt with error
         flash('Full name must be at least 3 characters long.', 'danger')
-    elif not email or not is_valid_email(email):
+    elif not email or not is_valid_email(email): #validate is empty and make use of is_valid_email() function
         flash('Please enter a valid email address.', 'danger')
-    elif not message or len(message) < 10:
+    elif not message or len(message) < 10: #too short for a message, will be prompt with error
         flash('Message must be at least 10 characters long.', 'danger')
     else:
         # Save feedback with replied status as False
@@ -990,9 +1019,11 @@ def submit_contact_us():
 @app.route('/contact_us_data')
 def contact_us_data():
     return render_template('contact_us_data.html', feedback_list=feedback_data, reply_list=reply_data)
-
+    # list of feedback data stored in feedback_data
+    # list of replies stored in reply_data
 
 @app.route('/reply_to_feedback', methods=['POST'])
+# only staff can reply! not customers!
 def reply_to_feedback():
     email = request.form.get('email')
     reply_message = request.form.get('reply_message')
@@ -1004,10 +1035,11 @@ def reply_to_feedback():
             break
 
     # Save the reply in the reply_data list
-    reply_data.append({
+    reply_data.append({ # adds a new entry to the reply_data list
         'email': email,
         'reply_message': reply_message,
         'date_replied': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # formatted as YYYY-MM-DD HH:MM:SS.
     })
     flash('Reply sent successfully!', 'success')
     return redirect('/contact_us_data')
@@ -1017,6 +1049,7 @@ def points_system():
     # Initialize session variables if not set
     if 'points' not in session:
         session['points'] = 0
+    # Initializes the user's points to 0 if not already set in the session.
     if 'last_login' not in session:
         session['last_login'] = None
     if 'streak' not in session:
@@ -1024,11 +1057,14 @@ def points_system():
 
     # Check if the user logs in on a new day
     today = datetime.now().date()
+    # gets the current date.
     last_login = session['last_login']
+    # retrieves the last_login date from the session.
 
     if last_login is None or last_login != str(today):
+        # checks if the user hasn't logged in today (or ever logged in).
         session['last_login'] = str(today)
-        session['streak'] += 1
+        session['streak'] += 1 # streak increase by 1
         session['points'] += 2  # Add points for daily login
 
     return render_template('points_system.html', points=session['points'], streak=session['streak'])
@@ -1046,6 +1082,8 @@ def spin():
     session['points'] += result
 
     return {'result': result, 'points': session['points']}
+    # sends a JSON response to the client
+    # JSON response includes result and total points
 
 
 @app.route('/download_receipt/<int:order_id>')
