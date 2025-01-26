@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
 from dashboard import create_dash_app
+print('halo')
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
