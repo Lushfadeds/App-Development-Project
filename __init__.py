@@ -262,7 +262,12 @@ def register():
         password = request.form['password']
         contact_number = request.form['contact_number']
         role = request.form['role']  # "staff" or "customer"
-        profile_picture = request.form['profile']
+        profile_picture = request.files['profile']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
 
         # Check if the email already exists
         if User.query.filter_by(email=email).first():
@@ -280,7 +285,7 @@ def register():
             contact_number=contact_number,
             role=role,
             role_id=new_role_id,
-            profile_picture=profile_picture,
+            profile_picture=filename,
         )
         new_user.set_password(password)
         db.session.add(new_user)
@@ -867,7 +872,11 @@ def staff_dashboard():
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
+        userid = session['user_id']
+        user = User.query.get_or_404(userid)
+        filename = user.profile_picture
+
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", userid=session['user_id'], profile_picture=filename)
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
