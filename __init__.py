@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash , session
+from flask import Flask, render_template, request,send_file, jsonify, redirect, url_for, flash , session
 from datetime import datetime
 import re
 import os
@@ -657,10 +657,15 @@ def validate_expiry_date(expiry_date):
         return False
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
+    # Check if the user is logged in (i.e., has an active session)
+    if 'user_id' not in session:
+        flash("Please log in to proceed with the checkout.", "danger")
+        return redirect(url_for('login'))  # Redirect to login if not logged in
+
     cart = session.get('cart', [])
     if not cart:
         flash("Your cart is empty. Add items before proceeding to checkout.", "danger")
-        return redirect(url_for('shopping_page'))
+        return redirect(url_for('shopping_page'))  # Redirect to shopping page if cart is empty
 
     errors = {}  # Initialize an empty errors dictionary
 
@@ -705,11 +710,17 @@ def checkout():
                 total_cost=total_cost
             )
 
+        # Fetch the logged-in user's details from the session
+        user = User.query.get(session['user_id'])  # Retrieve the user from the database
+        if not user:
+            flash("User not found. Please log in again.", "danger")
+            return redirect(url_for('login'))  # If no user is found, redirect to login
+
         # Process Order and Save to Database
         order = Order(
-            customer_name=None,  # Placeholder for now
-            customer_email=None,
-            customer_contact=None,
+            customer_name=user.name,  # Use the logged-in user's name
+            customer_email=user.email,  # Use the logged-in user's email
+            customer_contact=user.contact_number,  # Use the logged-in user's contact number
             date=date,
             time=time,
             location=location,
@@ -818,27 +829,31 @@ def edit_order_item(order_id):
 
     current_quantity = order_item.quantity
 
-    if new_quantity:
+    # Check if new_quantity was provided and validate
+    if new_quantity is not None:
         new_quantity = int(new_quantity)
-        if new_quantity > current_quantity:
-            flash("New quantity cannot exceed the current quantity.", "danger")
-            return redirect(url_for("staff_order_summary", order_id=order_id))
-        if new_quantity < 1:
-            flash("Quantity must be at least 1.", "danger")
+
+        # Allow the quantity to be set to 0 (zero)
+        if new_quantity < 0:
+            flash("Quantity cannot be less than 0.", "danger")
             return redirect(url_for("staff_order_summary", order_id=order_id))
 
-        # Update quantity
+        # Update the quantity, increase or decrease based on new value
         order_item.quantity = new_quantity
+
+        # Optionally handle logic for when quantity is set to 0 (e.g., mark as deleted or grayed out)
+        if new_quantity == 0:
+            order_item.status = "Removed"  # Optionally mark as 'Removed'
+            flash("Item quantity set to 0 and marked as removed.", "success")
+        else:
+            flash("Quantity updated successfully.", "success")
+
+        db.session.commit()
     else:
         flash("Invalid quantity provided.", "danger")
         return redirect(url_for("staff_order_summary", order_id=order_id))
 
-    # Commit changes
-    db.session.commit()
-
-    flash("Quantity updated successfully.", "success")
     return redirect(url_for("staff_order_summary", order_id=order_id))
-
 
 @app.route('/staff_dashboard')
 def staff_dashboard():
@@ -978,6 +993,55 @@ def spin():
     session['points'] += result
 
     return {'result': result, 'points': session['points']}
+
+
+@app.route('/download_receipt/<int:order_id>')
+def download_receipt(order_id):
+    # Generate receipt (this can be a PDF or text file)
+    receipt_file = generate_receipt(order_id)
+
+    # Send the receipt file for download
+    return send_file(receipt_file, as_attachment=True)
+
+
+def generate_receipt(order_id):
+    # Retrieve the order details
+    order = Order.query.get_or_404(order_id)
+
+    # Retrieve the items in the order, including inventory details
+    order_items = OrderItem.query.filter_by(order_id=order.id).all()
+
+    # Calculate total price and prepare the receipt content
+    receipt_content = f"Receipt for Order {order_id}\n\n"
+    receipt_content += f"Date: {order.date}\n"
+    receipt_content += f"Time: {order.time}\n"
+    receipt_content += f"Location: {order.location}\n"
+    receipt_content += "\nItems Ordered:\n"
+
+    total_price = 0  # Initialize total price
+
+    # Loop through each order item and fetch the associated inventory item
+    for item in order_items:
+        inventory_item = InventoryItem.query.get(item.inventory_item_id)  # Get the associated inventory item
+        if inventory_item:
+            item_total_cost = item.quantity * item.price
+            total_price += item_total_cost  # Add to the total cost
+
+            # Add item details to the receipt content
+            receipt_content += f"{inventory_item.name} - {item.quantity} x ${item.price:.2f} = ${item_total_cost:.2f}\n"
+        else:
+            receipt_content += f"Unknown Item - {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}\n"
+
+    # Add the total price at the end of the receipt
+    receipt_content += f"\nTotal Cost: ${total_price:.2f}"
+
+    # Save the receipt content to a text file
+    receipt_file = f"receipt_{order_id}.txt"
+    with open(receipt_file, 'w') as f:
+        f.write(receipt_content)
+
+    return receipt_file
+
 
 if __name__ == '__main__':
     app.run(debug=True)

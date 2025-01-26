@@ -107,7 +107,7 @@
                 <td>{{ order.id }}</td>
                 <td>{{ order.location }}</td>
                 <td>${{ order.total }}</td>
-                <td><a href="{{ url_for('order_summary', order_id=order.id) }}">Find out more</a></td>
+                <td><a href="{{ url_for('staff_order_summary', order_id=order.id) }}">Find out more</a></td>
             </tr>
             {% endfor %}
         </table>

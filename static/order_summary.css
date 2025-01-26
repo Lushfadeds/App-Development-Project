@@ -103,3 +103,24 @@ tfoot td:first-child {
     background-color: #0056b3;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+.gray-out {
+    background-color: #f2f2f2;
+    color: #aaa;
+}
+.custom-download-btn {
+    --bs-btn-color: #ffffff;
+    --bs-btn-bg: #8c5a40;
+    --bs-btn-border-color: #ffffff;
+    --bs-btn-hover-color: #2b1d0e;
+    --bs-btn-hover-bg: #D4B59E;
+    --bs-btn-hover-border-color: #ffffff;
+    --bs-btn-focus-shadow-rgb: 49, 132, 253;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #8c5a40;
+    --bs-btn-active-border-color: #0a53be;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: #0d6efd;
+    --bs-btn-disabled-border-color: #0d6efd;
+}
+
