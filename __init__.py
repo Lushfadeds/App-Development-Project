@@ -397,7 +397,7 @@ def edit_inventory_item(item_id):
         if "delete" in request.form:
             db.session.delete(item)
             db.session.commit()
-            flash(f"Item '{item.name}' has been deleted successfully!")
+            flash(f"Item '{item.name}' has been deleted successfully!", "success")
             return redirect(url_for("inventory_page"))
 
         # Update item details
@@ -417,7 +417,7 @@ def edit_inventory_item(item_id):
                 item.image_url = filename
 
         db.session.commit()
-        flash('Item updated successfully!')
+        flash('Item updated successfully!', "success")
         return redirect(url_for("inventory_page"))
 
     return render_template("edit_item.html", item=item)
@@ -461,24 +461,10 @@ def add_new_item():
         db.session.add(new_item)
         db.session.commit()
 
-        flash('Item successfully added!')
+        flash('Item successfully added!', "success")
         return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')
-
-
-@app.route("/inventory/delete/<int:item_id>", methods=["POST"])
-def delete_inventory_item(item_id):
-    # Fetch the item from the database
-    item = InventoryItem.query.get_or_404(item_id)
-
-    # Delete the item
-    db.session.delete(item)
-    db.session.commit()
-
-    # Flash a success message
-    flash(f"Item '{item.name}' has been deleted successfully!")
-    return redirect(url_for("inventory_page"))
 
 
 @app.route("/order_summary_staff/<int:order_id>", methods=["GET"])
@@ -666,10 +652,10 @@ def validate_expiry_date(expiry_date):
         return False
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    # Check if the user is logged in (i.e., has an active session)
-    if 'user_id' not in session:
-        flash("Please log in to proceed with the checkout.", "danger")
-        return redirect(url_for('login'))  # Redirect to login if not logged in
+    # Check if the user is logged in and is a customer
+    if 'role' not in session or session['role'] != 'customer':
+        flash("You are not authorized to access this page.", "danger")
+        return redirect(url_for('staff_dashboard'))  # Redirect staff to their dashboard (or another appropriate page)
 
     cart = session.get('cart', [])
     if not cart:
@@ -1054,7 +1040,63 @@ def generate_receipt(order_id):
         f.write(receipt_content)
 
     return receipt_file
+@app.route('/notifications', methods=['GET', 'POST'])
+def notifications():
+    # Check if the user is logged in and has a 'staff' role
+    if 'role' not in session or session['role'] != 'staff':
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('login'))
 
+    # Fetch all orders with status 'Pending' for staff to accept
+    pending_orders = Order.query.filter_by(status="Pending").all()
+
+    return render_template('notifications.html', orders=pending_orders)
+
+
+@app.route('/accept_order/<int:order_id>', methods=['POST'])
+def accept_order(order_id):
+    # Fetch the order from the database
+    order = Order.query.get_or_404(order_id)
+
+    # Fetch the staff member's details from the session
+    staff_user = User.query.get(session.get('user_id'))  # Get the staff member by their session ID
+
+    if not staff_user or staff_user.role != 'staff':
+        flash("You are not authorized to accept orders.", 'danger')
+        return redirect(url_for('notifications'))
+
+    # Update the order status to "Accepted"
+    order.status = "Accepted"
+
+    # Assign the shop details from the staff user to the order
+    order.shop_name = staff_user.name  # Assuming the staff member's name is used as the shop name
+    order.shop_email = staff_user.email
+    order.shop_contact = staff_user.contact_number  # Assuming contact_number is the shop contact
+
+    db.session.commit()  # Save the changes to the database
+
+    flash(f"Order {order.id} has been accepted!", 'success')
+    return redirect(url_for('notifications'))  # Redirect to the notifications page
+
+@app.route('/view_order_details/<int:order_id>', methods=['GET'])
+def view_order_details(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    # Retrieve the items for the order, including inventory details
+    items_with_inventory = []
+    total_price = 0
+    for item in order.order_items:
+        inventory_item = InventoryItem.query.get(item.inventory_item_id)
+        total_cost = item.quantity * item.price
+        total_price += total_cost
+
+        items_with_inventory.append({
+            "order_item": item,
+            "inventory_name": inventory_item.name if inventory_item else "Unknown Item",
+            "total_cost": total_cost,
+        })
+
+    return render_template('order_details.html', order=order, items=items_with_inventory, total_price=total_price)
 
 if __name__ == '__main__':
     app.run(debug=True)
