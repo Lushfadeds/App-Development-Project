@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request,send_file, jsonify, redirect, url_for, flash , session
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
 from datetime import datetime
 import re
 import os
@@ -22,18 +22,20 @@ def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Allowed_Extensions
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
     'orders': 'sqlite:///orders.db',
     'statistics': 'sqlite:///statistics.db',
     'user': 'sqlite:///user.db',
+    'rewards': 'sqlite:///rewards.db',
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
 class Reward(db.Model):
+    __bind_key__ = 'rewards'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
@@ -50,10 +52,6 @@ class Stats(db.Model):
     money_spent_customer = db.Column(db.Integer, nullable=False)
 
 
-with app.app_context():
-    if not os.path.exists('rewards.db'):
-        db.create_all()
-
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
     __tablename__ = 'inventory_item'  # Explicitly set table name
@@ -63,7 +61,6 @@ class InventoryItem(db.Model):
     category = db.Column(db.String(100), nullable=False)
     image_url = db.Column(db.String(200), nullable=True)
     price = db.Column(db.Float, nullable=False)
-
 
 
 class User(db.Model):
@@ -81,6 +78,7 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
 
 class Customer(db.Model):
     __bind_key__ = 'orders'
@@ -107,8 +105,6 @@ class Order(db.Model):
     status = db.Column(db.String(20), default="Pending")
 
 
-
-
 class OrderItem(db.Model):
     __bind_key__ = 'orders'
     __tablename__ = 'order_item'
@@ -120,8 +116,6 @@ class OrderItem(db.Model):
 
     # Relationships
     order = db.relationship('Order', backref='order_items')
-
-
 
 
 # Create the database table
@@ -165,6 +159,7 @@ with app.app_context():
 def staff_analytics():
     return render_template('staffanalytics.html', active_page='staffanalytics')
 
+
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
     product = request.form['products_sold']
@@ -196,6 +191,7 @@ def get_lowest_unused_id():
         if i not in existing_ids:
             return i
 
+
 @app.route('/analytics')
 def analytics():
     graph = Stats.query.all()
@@ -203,8 +199,9 @@ def analytics():
         print(i)
     return render_template('analytics.html', graph_data=graph)
 
+
 @app.route('/update_analytics/<int:id>', methods=['GET', 'POST'])
-def update(id:int):
+def update(id: int):
     stat = Stats.query.get_or_404(id)
     if request.method == "POST":
         stat.products_sold = request.form['products_sold']
@@ -219,6 +216,7 @@ def update(id:int):
 
     graph = Stats.query.all()
     return render_template('update_analytics.html', graph_data=graph, stat=stat)
+
 
 @app.route('/delete_analytics/<int:id>', methods=['POST'])
 def delete(id):
@@ -239,12 +237,14 @@ def aboutus():
 def home():
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
-        ]
+    ]
     team = "team.jpg"
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto,
+                           team=team, community=community)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -322,7 +322,6 @@ def delete_rewards(id):
     db.session.commit()
     flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
-
 
 
 user_points = 8888
@@ -407,6 +406,7 @@ def edit_inventory_item(item_id):
 
     return render_template("edit_item.html", item=item)
 
+
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
     if request.method == 'POST':
@@ -483,6 +483,7 @@ def order_summary_staff(order_id):
 
     return render_template("staff_order_summary.html", order=order, items=items)
 
+
 @app.route("/shopping", methods=["GET", "POST"])
 def shopping_page():
     # Retrieve query parameters
@@ -534,6 +535,7 @@ def shopping_page():
         cart_count=cart_count
     )
 
+
 @app.route("/add_to_cart", methods=["POST"])
 def add_to_cart():
     item_id = int(request.form.get("item_id"))
@@ -577,6 +579,8 @@ def add_to_cart():
 
     flash(f"Added {quantity} of {item.name} to cart!", "success")
     return redirect(url_for("shopping_page"))
+
+
 @app.route("/remove_from_cart", methods=["POST"])
 def remove_from_cart():
     item_id = int(request.form.get("item_id"))
@@ -594,6 +598,8 @@ def remove_from_cart():
 
     flash("Item removed from the cart!", "success")
     return redirect(url_for("shopping_page"))
+
+
 @app.route("/update_cart", methods=["POST"])
 def update_cart():
     item_id = request.form.get("item_id")
@@ -638,6 +644,7 @@ def update_cart():
     flash("Cart updated successfully.", "success")
     return redirect(url_for("shopping_page"))
 
+
 # Helper function to validate expiry date
 def validate_expiry_date(expiry_date):
     try:
@@ -649,6 +656,8 @@ def validate_expiry_date(expiry_date):
         return expiry_date > current_date
     except (ValueError, IndexError):
         return False
+
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     # Check if the user is logged in (i.e., has an active session)
@@ -751,6 +760,7 @@ def checkout():
     total_cost = sum(item['price'] * item['quantity'] for item in cart)
     return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
 
+
 def get_order_details(order_id):
     """
     Retrieve order details, including inventory details for each order item.
@@ -777,6 +787,7 @@ def get_order_details(order_id):
 
     return order, items_with_inventory, total_price
 
+
 @app.route('/order_summary/<int:order_id>')
 def order_summary(order_id):
     # Retrieve shared order details
@@ -788,6 +799,7 @@ def order_summary(order_id):
         items_with_inventory=items_with_inventory,
         total_price=total_price
     )
+
 
 @app.route("/staff_order_summary/<int:order_id>", methods=["GET"])
 def staff_order_summary(order_id):
@@ -804,6 +816,7 @@ def staff_order_summary(order_id):
         total_price=total_price,
         staff_notes=staff_notes  # Pass additional data for staff
     )
+
 
 @app.route("/order/<int:order_id>/edit_item", methods=["POST"])
 def edit_order_item(order_id):
@@ -849,6 +862,7 @@ def edit_order_item(order_id):
 
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
+
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
@@ -857,10 +871,13 @@ def staff_dashboard():
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications,
+                               event_revenue=event_revenue, low_stock_items=low_stock_items,
+                               active_page="staff_dashboard", user=session['user_id'])
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
+
 
 @app.route('/customer_account')
 def customer_account():
@@ -869,7 +886,8 @@ def customer_account():
         orders = Order.query.filter_by(customer_email=session.get('email')).all()
         notifications = 1  # Example
         user_points = 8888  # Example
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+        return render_template('customer_account.html', orders=orders, notifications=notifications,
+                               user_points=user_points)
     else:
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
@@ -883,7 +901,8 @@ def login():
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
         elif session['role'] == 'customer':
-            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+            return redirect(
+                url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -929,6 +948,8 @@ def is_valid_email(email):
         return True
     return False
 
+feedback_data = []  # In-memory storage for feedback
+reply_data = []  # In-memory storage for replies
 @app.route('/contact_us')
 def contact_us_page():
     return render_template('contact_us.html')
@@ -949,10 +970,42 @@ def submit_contact_us():
     elif not message or len(message) < 10:
         flash('Message must be at least 10 characters long.', 'danger')
     else:
+        # Save feedback with replied status as False
+        feedback_data.append({
+            'feedback_type': feedback_type,
+            'full_name': full_name,
+            'email': email,
+            'message': message,
+            'replied': False  # Default to not replied
+        })
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
     return redirect('/contact_us')
+
+@app.route('/contact_us_data')
+def contact_us_data():
+    return render_template('contact_us_data.html', feedback_list=feedback_data, reply_list=reply_data)
+
+@app.route('/reply_to_feedback', methods=['POST'])
+def reply_to_feedback():
+    email = request.form.get('email')
+    reply_message = request.form.get('reply_message')
+
+    # Update the feedback to mark it as replied
+    for feedback in feedback_data:
+        if feedback['email'] == email and not feedback['replied']:
+            feedback['replied'] = True
+            break
+
+    # Save the reply in the reply_data list
+    reply_data.append({
+        'email': email,
+        'reply_message': reply_message,
+        'date_replied': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
+    flash('Reply sent successfully!', 'success')
+    return redirect('/contact_us_data')
 
 @app.route('/points_system')
 def points_system():
@@ -974,6 +1027,7 @@ def points_system():
         session['points'] += 2  # Add points for daily login
 
     return render_template('points_system.html', points=session['points'], streak=session['streak'])
+
 
 @app.route('/spin', methods=['POST'])
 def spin():
