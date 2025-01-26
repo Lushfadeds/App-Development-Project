@@ -880,6 +880,9 @@ def edit_order_item(order_id):
 
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
+@app.route('/notifications')
+def notifications():
+    return render_template('notifications.html')
 
 @app.route('/staff_dashboard')
 def staff_dashboard():
