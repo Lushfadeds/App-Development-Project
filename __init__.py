@@ -75,6 +75,7 @@ class User(db.Model):
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
+    profile_picture = db.Column(db.String(), nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -252,6 +253,7 @@ def home():
     motto = "motto.jpg"
     return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -260,6 +262,7 @@ def register():
         password = request.form['password']
         contact_number = request.form['contact_number']
         role = request.form['role']  # "staff" or "customer"
+        profile_picture = request.form['profile']
 
         # Check if the email already exists
         if User.query.filter_by(email=email).first():
@@ -276,7 +279,8 @@ def register():
             email=email,
             contact_number=contact_number,
             role=role,
-            role_id=new_role_id
+            role_id=new_role_id,
+            profile_picture=profile_picture,
         )
         new_user.set_password(password)
         db.session.add(new_user)
