@@ -663,7 +663,6 @@ def validate_expiry_date(expiry_date):
 def checkout():
     # Check if the user is logged in and is a customer
     if 'role' not in session or session['role'] != 'customer':
-        flash("You are not authorized to access this page.", "danger")
         return redirect(url_for('staff_dashboard'))  # Redirect staff to their dashboard (or another appropriate page)
 
     cart = session.get('cart', [])
@@ -862,12 +861,21 @@ def edit_order_item(order_id):
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
-        orders = Order.query.all()
-        notifications = 1
+        # Fetch orders that are "Pending" for notifications
+        pending_orders = Order.query.filter_by(status="Pending").count()
+
+        # Other stats like event revenue, low stock items, etc.
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
+        return render_template(
+            'staff_dashboard.html',
+            notifications=pending_orders,  # Pass the number of notifications
+            low_stock_items=low_stock_items,
+            event_revenue=event_revenue,
+            active_page="staff_dashboard",
+            user=session['user_id']
+        )
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))

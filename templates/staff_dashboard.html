@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+
 {% block content %}
 <link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
 
@@ -14,7 +15,7 @@
         <div class="col-9 d-flex">
             <img src="static/pfp/lawyer.png" class="pfp rounded-circle m-5 img-fluid" alt="Profile">
             <div class="my-auto">
-                <h1>Welcome, User!</h1>
+                <h1>Welcome, {{ user.name }}!</h1>
                 <p class="lead">Organise your business and improve your performance here!</p>
             </div>
         </div>
@@ -40,7 +41,7 @@
             <div class="card-body d-flex justify-content-between p-0">
               <div>
                 <h5 class="card-title fw-bold pt-3 px-3">Updates</h5>
-                <p class="card-text px-3">You currently have 18 items low on stock</p>
+                <p class="card-text px-3">You currently have {{ low_stock_items }} items low on stock</p>
               </div>
               <a href="#" class="rounded">
                 <i class="fa-solid fa-chevron-right my-auto p-5 rounded"></i>
@@ -55,8 +56,8 @@
           <div class="card h-100">
             <div class="card-body px-5 py-4">
               <h5 class="card-title fs-4">You currently have: </h5>
-              <p class="notif card-text fs-2">1 Notification(s)</p>
-              <a href="#" class="btn btn-primary w-100 fs-5 fw-bold p-2 mt-2">View notifications</a>
+              <p class="notif card-text fs-2">{{ notifications }} Notification(s)</p>
+              <a href="{{ url_for('notifications') }}" class="btn btn-primary w-100 fs-5 fw-bold p-2 mt-2">View notifications</a>
             </div>
           </div>
         </div>
@@ -65,6 +66,8 @@
     </div>
   </div>
 </div>
+
+{% endblock %}
 
 <!--
 <div class="dashboard-container">
@@ -87,12 +90,12 @@
             <p>You currently have {{ low_stock_items }} items low on stock</p>
         </div>
     </div>
-    
+
     <div class="notifications">
         <h3>You currently have: {{ notifications }} Notification(s)</h3>
         <button>View Notifications</button>
     </div>
-    
+
     <div class="orders">
         <h3>View Current Orders</h3>
         <table>
@@ -114,4 +117,3 @@
     </div>
 </div>
 -->
-{% endblock %}

@@ -14,24 +14,32 @@
         {% for product in products %}
         <div class="col-md-4 mb-3">
             <div class="product-card">
+                <a href="{{url_for('shopping_page')}}">
+
                 <img src="{{ url_for('static', filename=product.image_url) }}" class="img-fluid" alt="{{ product.name }}">
                 <h5 class="mt-2">Our Best Product</h5>
+                  </a>
             </div>
         </div>
         {% endfor %}
 
         <div class="col-md-4 mb-3">
-            <div class="team-card">
+
+
+            <div class="team-card"><a href="{{url_for('aboutus')}}">
                 <img src="{{ url_for('static', filename=team) }}" class="img-fluid" alt="Our Team">
-                <h5 class="mt-2">Meet Our Team</h5>
+                <h5 class="mt-2">Meet Our Team</h5>       </a>
             </div>
+
         </div>
 
         <div class="col-md-4 mb-3">
-            <div class="community-card">
+
+            <div class="community-card"><a href="{{url_for('aboutus')}}">
                 <img src="{{ url_for('static', filename=community) }}" class="img-fluid" alt="Community Engagement">
-                <h5 class="mt-2">Community Events</h5>
+                <h5 class="mt-2">Community Events</h5></a>
             </div>
+
         </div>
     </div>
 

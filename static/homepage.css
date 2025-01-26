@@ -126,3 +126,12 @@
 .row.mt-4 {
     padding-bottom: 35px;
 }
+.product-card a, .team-card a, .community-card a, .our-story a {
+        color: inherit; /* Inherit color from the parent element */
+        text-decoration: none; /* Remove underline */
+    }
+
+.product-card a:hover, .team-card a:hover, .community-card a:hover, .our-story a:hover {
+        text-decoration: none; /* Ensure underline does not appear on hover */
+        color: inherit; /* Keep the color consistent when hovered */
+    }
