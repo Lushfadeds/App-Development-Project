@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Include Bootstrap CSS (if not already included in your base.html) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='notifications.css') }}" rel="stylesheet">
+
+<main class="notification-page">
+    <div class="container mt-5">
+        <h2>Order Notifications</h2>
+        <div class="alert alert-info" role="alert">
+            <strong>New Orders:</strong> Below is the list of pending orders awaiting your acceptance.
+        </div>
+
+        <!-- Orders Table -->
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Customer Name</th>
+                    <th>Order Date</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.id }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.date }} {{ order.time }}</td>
+                    <td>{{ order.location }}</td>
+                    <td>
+                        {% if order.status == 'Pending' %}
+                            <button class="status-btn" type="button">Pending</button>
+                        {% else %}
+                            <button class="status-btn" disabled type="button">Accepted</button>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if order.status == 'Pending' %}
+                            <form action="{{ url_for('accept_order', order_id=order.id) }}" method="POST">
+                                <button type="submit" class="btn btn-accept">Accept Order</button>
+                            </form>
+                            <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="btn btn-view mt-2">View Details</a>
+                        {% else %}
+                            <span class="text-muted">Accepted</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</main>
+
+{% endblock %}

@@ -1,5 +1,8 @@
 {% extends "base.html" %}
+
 {% block content %}
+<!-- Include Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="{{ url_for('static', filename='order_summary.css') }}" rel="stylesheet">
 
 <main class="order-summary-page">
@@ -12,11 +15,11 @@
 
     <div class="row">
         <!-- Shop Info Section -->
-        <section class="shop-info col-md-6">
-            <h3>Shop Info</h3>
-            <p><strong>Name:</strong> {{ order.shop_name or "Pending" }}</p>
-            <p><strong>Contact Number:</strong> {{ order.shop_contact or "Pending" }}</p>
-            <p><strong>Email:</strong> {{ order.shop_email or "Pending" }}</p>
+         <section class="customer-info col-md-6">
+            <h3>Customer Info</h3>
+            <p><strong>Name:</strong> {{ order.customer_name or "Pending" }}</p>
+            <p><strong>Contact Number:</strong> {{ order.customer_contact or "Pending" }}</p>
+            <p><strong>Email:</strong> {{ order.customer_email or "Pending" }}</p>
         </section>
 
         <!-- Comments/Request Section -->
@@ -57,17 +60,7 @@
             </tfoot>
         </table>
 
-        <!-- Download Section (Text and Button Side by Side) -->
-        <div class="row">
-            <div class="col-md-8">
-                <p class="text-start">Click here to download a full summary of the receipt:</p>
-            </div>
-            <div class="col-md-4">
-                <a href="{{ url_for('download_receipt', order_id=order.id) }}" class="btn custom-download-btn w-100">Download</a>
-            </div>
-        </div>
-
-    </section>
-</main>
+    <a href="{{ url_for('notifications') }}" class="btn btn-secondary w-100">Back to Notifications</a>
+ </main>
 
 {% endblock %}
