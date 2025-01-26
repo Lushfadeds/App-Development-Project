@@ -392,7 +392,7 @@ def edit_inventory_item(item_id):
         if "delete" in request.form:
             db.session.delete(item)
             db.session.commit()
-            flash(f"Item '{item.name}' has been deleted successfully!")
+            flash(f"Item '{item.name}' has been deleted successfully!", "success")
             return redirect(url_for("inventory_page"))
 
         # Update item details
@@ -412,7 +412,7 @@ def edit_inventory_item(item_id):
                 item.image_url = filename
 
         db.session.commit()
-        flash('Item updated successfully!')
+        flash('Item updated successfully!', "success")
         return redirect(url_for("inventory_page"))
 
     return render_template("edit_item.html", item=item)
@@ -460,20 +460,6 @@ def add_new_item():
         return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')
-
-
-@app.route("/inventory/delete/<int:item_id>", methods=["POST"])
-def delete_inventory_item(item_id):
-    # Fetch the item from the database
-    item = InventoryItem.query.get_or_404(item_id)
-
-    # Delete the item
-    db.session.delete(item)
-    db.session.commit()
-
-    # Flash a success message
-    flash(f"Item '{item.name}' has been deleted successfully!")
-    return redirect(url_for("inventory_page"))
 
 
 @app.route("/order_summary_staff/<int:order_id>", methods=["GET"])
