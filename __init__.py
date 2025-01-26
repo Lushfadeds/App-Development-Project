@@ -456,7 +456,7 @@ def add_new_item():
         db.session.add(new_item)
         db.session.commit()
 
-        flash('Item successfully added!')
+        flash('Item successfully added!', "success")
         return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')

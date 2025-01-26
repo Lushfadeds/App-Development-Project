@@ -20,12 +20,13 @@
             <input type="text" id="name" name="name" value="{{ item.name }}" disabled>
 
             <label for="stock">Stock Quantity:</label>
-            <input type="number" id="stock" name="stock" value="{{ item.stock }}" required>
+            <input type="number" id="stock" name="stock" value="{{ item.stock }}" min="1" required>
 
             <label for="image_url">Update Image (Optional):</label>
             <input type="file" id="image_url" name="image_url" accept=".jpg,.jpeg,.png">
-             <label for="price">Price*</label>
-            <input type="number" id="price" name="price" step="0.01" placeholder="Enter item price" required>
+
+            <label for="price">Price*</label>
+            <input type="number" id="price" name="price" step="0.01" placeholder="Enter item price" min="0.01" required>
 
             <div class="button-container">
                 <button type="submit" class="update-btn">Update</button>
