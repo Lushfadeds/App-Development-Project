@@ -20,75 +20,75 @@
 
 <!-- Analytics Page -->
 
-<div class="container my-4">
+<div class="contianer-fluid px-0">
+    <div class="row">
 
-    <div class="d-flex justify-content-between align-items-center">
-        <h1>Analytics</h1>
-        <div class="d-flex align-items-center">
-            <span class="text-muted me-3">Updated: </span>
-            <button class="btn btn-secondary btn-sm px-3 py-2" id="openPopup">Edit<i class="fa-solid fa-pen-to-square"></i></button>
-        </div>
-    </div>
+        {% include "includes/staff_navbar.html"%}
 
-    <div class="row g-3 mt-3">
+        <div class="col-9 mx-auto my-5">
 
-        <div class="col-md-4">
-            <div class="card p-3 shadow-sm">
-                <h5 class="card-title">Today's Earnings</h5>
-                <div class="placeholder-box"><iframe src="/dash/"></iframe></div>
-            </div>
-
-        </div>
-
-        <div class="col-md-4">
-
-            <div class="card p-3 shadow-sm">
-                <h5 class="card-title">Products Sold</h5>
-                <div class="placeholder-box"></div>
-            </div>
-
-        </div>
-        <div class="col-md-4">
-
-            <div class="card p-3 shadow-sm">
-                <h5 class="card-title">New Customers</h5>
-                <div class="placeholder-box"></div>
-            </div>
-
-        </div>
-        <div class="col-md-6">
-
-            <div class="card p-3 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title">Daily Report</h5>
-                    <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="fa-solid fa-caret-down"></i>
-                    </button>
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Analytics</h1>
+                <div class="d-flex align-items-center">
+                    <span class="text-muted me-3">Updated: </span>
+                    <button class="btn btn-secondary btn-sm px-3 py-2" id="openPopup">Edit<i class="fa-solid fa-pen-to-square"></i></button>
                 </div>
-                <div class="placeholder-box"></div>
             </div>
 
-        </div>
+            <div class="row g-3 mt-3">
 
-        <div class="col-md-6">
+                <div class="col-md-4">
+                    <div class="card p-3 shadow-sm">
+                        <h5 class="card-title">Today's Earnings</h5>
+                        <div class="placeholder-box"><iframe src="/dash/"></iframe></div>
+                    </div>
+                </div>
 
-            <div class="card p-3 shadow-sm">
-                <h5 class="card-title">Live Reviews</h5>
-                <div class="placeholder-box"></div>
+                <div class="col-md-4">
+                    <div class="card p-3 shadow-sm">
+                        <h5 class="card-title">Products Sold</h5>
+                        <div class="placeholder-box"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card p-3 shadow-sm">
+                        <h5 class="card-title">New Customers</h5>
+                        <div class="placeholder-box"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card p-3 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">Daily Report</h5>
+                            <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-caret-down"></i>
+                            </button>
+                        </div>
+                        <div class="placeholder-box"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card p-3 shadow-sm">
+                        <h5 class="card-title">Live Reviews</h5>
+                        <div class="placeholder-box"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-12">
+                    <div class="card p-3 shadow-sm">
+                        <h5 class="card-title">Suggestions</h5>
+                        <div class="placeholder-box"></div>
+                    </div>
+                </div>
             </div>
-
-        </div>
-
-        <div class="col-md-12">
-
-            <div class="card p-3 shadow-sm">
-                <h5 class="card-title">Suggestions</h5>
-                <div class="placeholder-box"></div>
-            </div>
-
         </div>
     </div>
 </div>
+
+
 
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 

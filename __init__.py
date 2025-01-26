@@ -26,7 +26,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
     'orders': 'sqlite:///orders.db',
-    'statistics': 'sqlite:///statistics.db'
+    'statistics': 'sqlite:///statistics.db',
+    'user': 'sqlite:///user.db',
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -66,6 +67,7 @@ class InventoryItem(db.Model):
 
 
 class User(db.Model):
+    __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -161,7 +163,7 @@ with app.app_context():
 
 @app.route('/staff_analytics')
 def staff_analytics():
-    return render_template('staffanalytics.html')
+    return render_template('staffanalytics.html', active_page='staffanalytics')
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
@@ -840,7 +842,7 @@ def staff_dashboard():
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items)
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))

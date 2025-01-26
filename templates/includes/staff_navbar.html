@@ -1,8 +1,7 @@
 <link href="{{ url_for('static', filename='staff_navbar.css') }}" rel="stylesheet">
 
 <div class="col-4 sidebar fs-5">
-    <a href="{{ url_for('staff_dashboard') }}" class="active"><i class="fa-solid fa-house"></i>Dashboard</a>
-    <a href="{{ url_for('staff_analytics') }}"><i class="fa-solid fa-chart-line"></i>Analytics</a>
-    <a href="{{ url_for('inventory_page') }}"><i class="fa-solid fa-warehouse"></i>Inventory</a>
+    <a href="{{ url_for('staff_dashboard') }}" class="{% if active_page == 'staff_dashboard' %}active{% endif %}"><i class="fa-solid fa-house"></i>Dashboard</a>
+    <a href="{{ url_for('staff_analytics') }}" class="{% if active_page == 'staffanalytics' %}active{% endif %}"><i class="fa-solid fa-chart-line"></i>Analytics</a>
     <a href=""><i class="fa-solid fa-calendar"></i>Events</a>
 </div>
