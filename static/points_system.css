@@ -6,6 +6,8 @@ body {
     padding: 0;
 }
 
+
+
 .container {
     margin: 50px auto;
     width: 80%;
@@ -15,6 +17,69 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
+
+.streak-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 90%;
+    max-width: 600px;
+}
+
+#collect-points {
+    background-color: #5a67d8;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+#collect-points:active {
+    background-color: #434190;
+}
+
+.streak-tracker {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ddd;
+    padding: 10px 20px;
+    border-radius: 10px;
+}
+
+.day {
+    text-align: center;
+}
+
+.circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    margin: 0 auto 10px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.circle.completed {
+    background-color: #5a67d8;
+    border-color: #5a67d8;
+    color: white;
+}
+
+.day p {
+    margin: 0;
+    font-size: 12px;
+    color: #333;
+}
+
 
 h1 {
     color: #333;
@@ -38,21 +103,40 @@ h1 {
     height: 50%;
     background-color: #ddd;
     border: 1px solid #ccc;
-    transform-origin: 100% 100%;
+    transform-origin: 100% 100%; /* Anchor rotation point to bottom-right */
     text-align: center;
-    line-height: 150px;
+    line-height: 150px; /* Vertically center the text */
     font-size: 18px;
     color: #333;
 }
 
-.segment:nth-child(1) { transform: rotate(0deg); background: #ffadad; }
-.segment:nth-child(2) { transform: rotate(72deg); background: #ffd6a5; }
-.segment:nth-child(3) { transform: rotate(144deg); background: #fdffb6; }
-.segment:nth-child(4) { transform: rotate(216deg); background: #caffbf; }
-.segment:nth-child(5) { transform: rotate(288deg); background: #9bf6ff; }
+/* Each segment rotates by 72deg */
+.segment:nth-child(1) {
+    transform: rotate(0deg); /* First segment at 0deg */
+    background: #ffadad;
+}
+.segment:nth-child(2) {
+    transform: rotate(72deg); /* Second segment at 72deg */
+    background: #ffd6a5;
+}
+.segment:nth-child(3) {
+    transform: rotate(144deg); /* Third segment at 144deg */
+    background: #fdffb6;
+}
+.segment:nth-child(4) {
+    transform: rotate(216deg); /* Fourth segment at 216deg */
+    background: #caffbf;
+}
+.segment:nth-child(5) {
+    transform: rotate(288deg); /* Fifth segment at 288deg */
+    background: #9bf6ff;
+}
+
 
 #wheel-container {
     position: relative;
+    display: inline-block;
+    margin-top: 20px;
 }
 
 #spin-button {
@@ -68,4 +152,35 @@ h1 {
 
 #spin-button:active {
     background-color: #D4B59E;
+}
+
+/* Arrow styles */
+.arrow {
+    position: absolute;
+    top: 468px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 20px solid black; /* Color of the arrow */
+    z-index: 3; /* Ensure it is above the wheel */
+}
+
+/* Adjustments for mobile */
+@media (max-width: 768px) {
+    #wheel {
+        width: 250px;
+        height: 250px;
+    }
+
+    .segment {
+        line-height: 125px;
+        font-size: 16px;
+    }
+
+    .arrow {
+        top: -15px; /* Adjust arrow placement for smaller wheel */
+    }
 }
