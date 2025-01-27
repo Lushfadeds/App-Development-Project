@@ -29,10 +29,30 @@ app.config['SQLALCHEMY_BINDS'] = {
     'statistics': 'sqlite:///statistics.db',
     'user': 'sqlite:///user.db',
     'rewards': 'sqlite:///rewards.db',
+    'feedback': 'sqlite:///feedback.db',
+    'replies': 'sqlite:///replies.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+
+# Define Feedback model
+class Feedback(db.Model):
+    __bind_key__ = 'feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_type = db.Column(db.String(50), nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    replied = db.Column(db.Boolean, default=False)
+
+# Define Reply model
+class Reply(db.Model):
+    __bind_key__ = 'replies'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), nullable=False)
+    reply_message = db.Column(db.Text, nullable=False)
+    date_replied = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Reward(db.Model):
     __bind_key__ = 'rewards'
@@ -981,9 +1001,6 @@ def is_valid_email(email):
     # The dot is a common character in email domain names, e.g., in example.com, .com is the domain part.
     return False
 
-feedback_data = []  # In-memory storage for feedback
-reply_data = []  # In-memory storage for replies
-# stored in a list for now, shifting to db
 @app.route('/contact_us')
 def contact_us_page():
     return render_template('contact_us.html')
@@ -995,98 +1012,102 @@ def submit_contact_us():
     email = request.form.get('email')
     message = request.form.get('message')
 
-    # validations below:
+    # Validations
     if not feedback_type:
         flash('Please select a feedback type.', 'danger')
-    elif not full_name or len(full_name) < 3: #too short for a name, will be prompt with error
+    elif not full_name or len(full_name) < 3:
         flash('Full name must be at least 3 characters long.', 'danger')
-    elif not email or not is_valid_email(email): #validate is empty and make use of is_valid_email() function
+    elif not email or not is_valid_email(email):
         flash('Please enter a valid email address.', 'danger')
-    elif not message or len(message) < 10: #too short for a message, will be prompt with error
+    elif not message or len(message) < 10:
         flash('Message must be at least 10 characters long.', 'danger')
     else:
-        # Save feedback with replied status as False
-        feedback_data.append({
-            'feedback_type': feedback_type,
-            'full_name': full_name,
-            'email': email,
-            'message': message,
-            'replied': False  # Default to not replied
-        })
+        # Save feedback to the database
+        feedback = Feedback(
+            feedback_type=feedback_type,
+            full_name=full_name,
+            email=email,
+            message=message,
+            replied=False
+        )
+        db.session.add(feedback)
+        db.session.commit()
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
     return redirect('/contact_us')
 
-
+# Route to view feedback and replies
 @app.route('/contact_us_data')
 def contact_us_data():
-    return render_template('contact_us_data.html', feedback_list=feedback_data, reply_list=reply_data)
-    # list of feedback data stored in feedback_data
-    # list of replies stored in reply_data
+    feedback_list = Feedback.query.all()
+    reply_list = Reply.query.all()
+    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list)
 
+# Route to reply to feedback
 @app.route('/reply_to_feedback', methods=['POST'])
-# only staff can reply! not customers!
 def reply_to_feedback():
     email = request.form.get('email')
     reply_message = request.form.get('reply_message')
 
     # Update the feedback to mark it as replied
-    for feedback in feedback_data:
-        if feedback['email'] == email and not feedback['replied']:
-            feedback['replied'] = True
-            break
+    feedback = Feedback.query.filter_by(email=email, replied=False).first()
+    if feedback:
+        feedback.replied = True
+        db.session.add(feedback)
+        db.session.commit()
 
-    # Save the reply in the reply_data list
-    reply_data.append({ # adds a new entry to the reply_data list
-        'email': email,
-        'reply_message': reply_message,
-        'date_replied': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        # formatted as YYYY-MM-DD HH:MM:SS.
-    })
-    flash('Reply sent successfully!', 'success')
+        # Save the reply to the database
+        reply = Reply(email=email, reply_message=reply_message)
+        db.session.add(reply)
+        db.session.commit()
+        flash('Reply sent successfully!', 'success')
+
     return redirect('/contact_us_data')
 
+# In-memory data store (can be replaced by a real database in production)
+user_data = {
+    'streakData': {},
+    'totalPoints': 500,
+    'lastSpinDate': '',
+}
+
+
+# Route to render the points system page
 @app.route('/points_system')
 def points_system():
-    # Initialize session variables if not set
-    if 'points' not in session:
-        session['points'] = 0
-    # Initializes the user's points to 0 if not already set in the session.
-    if 'last_login' not in session:
-        session['last_login'] = None
-    if 'streak' not in session:
-        session['streak'] = 0
-
-    # Check if the user logs in on a new day
-    today = datetime.now().date()
-    # gets the current date.
-    last_login = session['last_login']
-    # retrieves the last_login date from the session.
-
-    if last_login is None or last_login != str(today):
-        # checks if the user hasn't logged in today (or ever logged in).
-        session['last_login'] = str(today)
-        session['streak'] += 1 # streak increase by 1
-        session['points'] += 2  # Add points for daily login
-
-    return render_template('points_system.html', points=session['points'], streak=session['streak'])
+    # Pass the current points to the template
+    return render_template('points_system.html', points=user_data['totalPoints'])
 
 
-@app.route('/spin', methods=['POST'])
-def spin():
-    import random
+# Route to get the user data (streak data, total points, and last spin date)
+@app.route('/get_user_data', methods=['GET'])
+def get_user_data():
+    return jsonify(user_data)
+# It is a GET endpoint.
+# user_data is converted into a JSON response and returned to the client.
 
-    # Spin the wheel and get random points
-    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
-    result = random.choice(outcomes)
 
-    # Update points in session
-    session['points'] += result
+# Route to update user data (after collecting points or spinning the wheel)
+@app.route('/update_user_data', methods=['POST'])
+def update_user_data():
+    data = request.json
+    user_data['streakData'] = data['streakData']
+    user_data['totalPoints'] = data['totalPoints']
+    user_data['lastSpinDate'] = data['lastSpinDate']
 
-    return {'result': result, 'points': session['points']}
-    # sends a JSON response to the client
-    # JSON response includes result and total points
+    return jsonify({"status": "success", "message": "User data updated"})
+
+
+# To handle any errors gracefully
+@app.errorhandler(404)
+def not_found_error(error):
+    return jsonify({"status": "error", "message": "Not Found"}), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({"status": "error", "message": "Internal Server Error"}), 500
 
 
 @app.route('/download_receipt/<int:order_id>')

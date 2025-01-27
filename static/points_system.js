@@ -1,133 +1,151 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Streak functionality (unchanged)
-
     const collectButton = document.getElementById("collect-points");
     const days = document.querySelectorAll(".day");
-    const today = new Date().getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+    const today = new Date().getDay();
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-    // Load streak data and total points from localStorage
-    const streakData = JSON.parse(localStorage.getItem("streakData")) || {};
-    let totalPoints = parseInt(localStorage.getItem("totalPoints")) || 0;  // Load total points, default to 0 if none
+    // Fetch streak data and total points from the backend
+    fetch('/get_user_data')
+        .then(response => response.json())
+        .then(data => {
+            const streakData = data.streakData || {};
+            let totalPoints = data.totalPoints || 0;
 
-    // Update the UI based on streak data
-    days.forEach((day, index) => {
-        const dayName = day.dataset.day;
-        const circle = day.querySelector(".circle");
-        if (streakData[dayName]) {
-            circle.classList.add("completed");
-            circle.textContent = "✔";
-        }
-        if (index === today - 1 || (today === 0 && index === 6)) {
-            day.classList.add("current");
-        }
-    });
+            // Update the UI based on streak data
+            days.forEach((day, index) => {
+                const dayName = day.dataset.day;
+                const circle = day.querySelector(".circle");
+                if (streakData[dayName]) {
+                    circle.classList.add("completed");
+                    circle.textContent = "✔";
+                }
+                if (index === today - 1 || (today === 0 && index === 6)) {
+                    day.classList.add("current");
+                }
+            });
 
-    // Button click event to collect points
-    collectButton.addEventListener("click", () => {
-        const currentDay = dayNames[today];
-        if (!streakData[currentDay]) {
-            // Mark the current day as completed in the streak data
-            streakData[currentDay] = true;
-            localStorage.setItem("streakData", JSON.stringify(streakData));
+            // Button click event to collect points
+            collectButton.addEventListener("click", () => {
+                const currentDay = dayNames[today];
+                if (!streakData[currentDay]) {
+                    // Mark the current day as completed
+                    streakData[currentDay] = true;
 
-            // Update the total points
-            totalPoints += 2; // Add 2 points for today
-            localStorage.setItem("totalPoints", totalPoints); // Save updated total points to localStorage
+                    // Update the total points
+                    totalPoints += 2;
 
-            // Update the UI to reflect the streak completion
-            const currentCircle = document.querySelector(`.day[data-day="${currentDay}"] .circle`);
-            currentCircle.classList.add("completed");
-            currentCircle.textContent = "✔";
+                    // Send updated data to the backend
+                    fetch('/update_user_data', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            streakData: streakData,
+                            totalPoints: totalPoints,
+                            lastSpinDate: data.lastSpinDate // Keep the last spin date intact
+                        })
+                    }).then(response => response.json())
+                      .then(() => {
+                          // Update UI with the new streak and points
+                          const currentCircle = document.querySelector(`.day[data-day="${currentDay}"] .circle`);
+                          currentCircle.classList.add("completed");
+                          currentCircle.textContent = "✔";
 
-            // Display total points in the UI
+                          const pointsDisplay = document.getElementById("user-points");
+                          pointsDisplay.textContent = `Points: ${totalPoints}`;
+
+                          alert("You collected 2 points for today!");
+                      }).catch(err => {
+                          console.error("Error updating data: ", err);
+                          alert("Something went wrong while updating your points.");
+                      });
+                } else {
+                    alert("You already collected points for today!");
+                }
+            });
+
+            // Display the points on page load
             const pointsDisplay = document.getElementById("user-points");
-            pointsDisplay.textContent = `Points: ${totalPoints}`;  // Update points displayed
+            pointsDisplay.textContent = `Points: ${totalPoints}`;
+        }).catch(err => {
+            console.error("Error fetching user data: ", err);
+            alert("Something went wrong while fetching your data.");
+        });
 
-            alert("You collected 2 points for today!");
-        } else {
-            alert("You already collected points for today!");
-        }
-    });
-
-    // Display the points on page load (in case it's set in localStorage)
-    const pointsDisplay = document.getElementById("user-points");
-    pointsDisplay.textContent = `Points: ${totalPoints}`;
-
-
-
- // Spin the Wheel functionality
-
+    // Spin the Wheel functionality
     const spinButton = document.getElementById("spin-button");
     const wheel = document.getElementById("wheel");
     const spinResult = document.getElementById("spin-result");
     let isSpinning = false;
 
-    // Define outcomes for the wheel (values in points)
-    const outcomes = [2, 3, 5, 10, 0]; // Example points
-    const segmentSize = 72; // Segment size in degrees
+    // Fetch the last spin date to decide if the button should be disabled
+    fetch('/get_user_data')
+        .then(response => response.json())
+        .then(data => {
+            const lastSpinDate = data.lastSpinDate;
+            const todayDate = new Date().toDateString();
 
-    // Check if the wheel has been spun today
-    const lastSpinDate = localStorage.getItem('lastSpinDate');
-    const todayDate = new Date().toDateString();
+            if (lastSpinDate === todayDate) {
+                spinButton.disabled = true;
+                spinButton.style.backgroundColor = "#cccccc";
+                spinResult.textContent = "You've already spun the wheel today!";
+            } else {
+                spinButton.disabled = false;
+                spinButton.style.backgroundColor = "#8c5a3f";
+            }
+        }).catch(err => {
+            console.error("Error fetching spin data: ", err);
+            alert("Something went wrong while checking your spin status.");
+        });
 
-    if (lastSpinDate === todayDate) {
-        // Disable the spin button if the wheel has been spun today
-        spinButton.disabled = true;
-        spinButton.style.backgroundColor = "#cccccc"; // Change button color to indicate disabled state
-        spinResult.textContent = "You've already spun the wheel today!"; // Show message
-    } else {
-        // Enable the spin button if not spun today
-        spinButton.disabled = false;
-        spinButton.style.backgroundColor = "#8c5a3f"; // Set button color to indicate enabled state
-    }
-
-    // Handle the click event for the spin button
     spinButton.addEventListener("click", () => {
-        if (isSpinning) return; // Prevent multiple spins at the same time
+        if (isSpinning) return;
         isSpinning = true;
-        spinResult.textContent = "Spin Result: "; // Clear previous result
+        spinResult.textContent = "Spin Result: ";
 
-        // Randomly determine the spin angle
-        const spinAngle = Math.floor(3600 + Math.random() * 360); // At least 10 full rotations
+        const spinAngle = Math.floor(3600 + Math.random() * 360);
         wheel.style.transform = `rotate(${spinAngle}deg)`;
 
-        // Calculate the result based on the normalized angle
         setTimeout(() => {
-            const normalizedAngle = spinAngle % 360; // Get the final position angle
-            const correctedAngle = (360 - normalizedAngle + 90) % 360; // Adjust for arrow position
-            const segmentIndex = Math.floor(correctedAngle / segmentSize) // Determine the segment
+            const normalizedAngle = spinAngle % 360;
+            const correctedAngle = (360 - normalizedAngle + 90) % 360;
+            const segmentIndex = Math.floor(correctedAngle / 72);
+            const outcomes = [2, 3, 5, 10, 0];
+            const result = outcomes[segmentIndex];
 
-            const result = outcomes[segmentIndex]; // Result based on angle
             spinResult.textContent = `Spin Result: You won ${result} points!`;
 
-            // Update total points with the result of the spin
-            let totalPoints = parseInt(localStorage.getItem("totalPoints")) || 0;
-            totalPoints += result; // Add result points
-            localStorage.setItem("totalPoints", totalPoints); // Save updated total points
+            // Update points and save to backend
+            fetch('/get_user_data')
+                .then(response => response.json())
+                .then(data => {
+                    let totalPoints = data.totalPoints + result;
 
-            // Update the UI with the total points after spin
-            const pointsDisplay = document.getElementById("user-points");
-            pointsDisplay.textContent = `Points: ${totalPoints}`;
+                    fetch('/update_user_data', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            streakData: data.streakData,
+                            totalPoints: totalPoints,
+                            lastSpinDate: new Date().toDateString()  // Update the last spin date
+                        })
+                    }).then(() => {
+                        const pointsDisplay = document.getElementById("user-points");
+                        pointsDisplay.textContent = `Points: ${totalPoints}`;
 
-            // Store the current date as the last spin date in localStorage
-            localStorage.setItem('lastSpinDate', todayDate);
-
-            // Prevent multiple spins by disabling the button
-            spinButton.disabled = true;
-            spinButton.style.backgroundColor = "#cccccc"; // Change button color to indicate disabled state
-
-
-            setTimeout(() => {
-                // Optionally re-enable the button after a day or based on your use case
-            }, 3000); // Re-enable after 3 seconds
-
-            isSpinning = false;
-        }, 4000); // Match the CSS transition duration
+                        spinButton.disabled = true;
+                        spinButton.style.backgroundColor = "#cccccc";
+                    }).catch(err => {
+                        console.error("Error updating spin result: ", err);
+                        alert("Something went wrong while updating your spin result.");
+                    });
+                }).catch(err => {
+                    console.error("Error fetching user data for spin: ", err);
+                    alert("Something went wrong while fetching your data for the spin.");
+                });
+        }, 4000);
     });
 });
-
-
-
-
-
