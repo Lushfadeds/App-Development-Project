@@ -10,6 +10,7 @@ import dash
 from dash import dcc, html
 import pandas as pd
 import plotly.express as px
+print('hla')
 
 
 app = Flask(__name__)
