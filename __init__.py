@@ -6,8 +6,11 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
-from dashboard import create_dash_app
-print('halo')
+import dash
+from dash import dcc, html
+import pandas as pd
+import plotly.express as px
+
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -44,6 +47,7 @@ class Reward(db.Model):
 class Stats(db.Model):
     __bind_key__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
+    day = db.Column(db.Integer, nullable=True)
     products_sold = db.Column(db.Integer, nullable=False)
     daily_sale = db.Column(db.Integer, nullable=False)
     daily_customers = db.Column(db.Integer, nullable=False)
@@ -156,34 +160,78 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
-create_dash_app(app)
-with app.app_context():
-    data = User.query.all()
-    for i in data:
-        print(f"{i.id}, {i.name}, {i.role}")
-
 @app.context_processor
 def inject_user():
     user_id = session.get('user_id')
-    return {'user': user_id}
+    return {'userid': user_id}
 
+def create_dash_app(app):
+    dash_app = dash.Dash(__name__, server=app, url_base_pathname='/dash/')
+
+    # Query the database for days and sales
+    with app.app_context():
+        stats = Stats.query.all()
+        days = [stat.day for stat in stats]
+        sales = [stat.daily_sale for stat in stats]
+
+    # Create the DataFrame using the queried data
+    data = pd.DataFrame({
+        'X': days,  # Day values for the X axis
+        'Y': sales,  # Sales values for the Y axis
+    })
+
+    data = data.sort_values(by="X")
+
+    # Create the figure for the line graph
+    fig = px.line(
+        data,
+        x='X',
+        y='Y',
+        labels={'X': 'Days', 'Y': 'Sales'},
+    )
+
+    fig.update_layout(height=300)
+
+    # Set the layout for the Dash app
+    dash_app.layout = html.Div([
+        dcc.Graph(id='line-graph', figure=fig)
+    ])
+
+    return dash_app
+
+
+create_dash_app(app)
 
 
 @app.route('/staff_analytics')
 def staff_analytics():
-    return render_template('staffanalytics.html', active_page='staffanalytics')
+    max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
+    stats = Stats.query.all()
+    for i in stats:
+        print(i.day)
+
+    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry)
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
     product = request.form['products_sold']
+    day = request.form['day']
     sales_today = request.form['sales_today']
     customers_today = request.form['customers_today']
     unique_customers_today = request.form['unique_customers_today']
     money_spent_customer = request.form['money_spent_customer']
 
-    lowest_id = get_lowest_unused_id()
+    #new_user = session['user_id']
 
-    new_graph = Stats(id=lowest_id,
+    max_role_id = db.session.query(db.func.max(Stats.id)).scalar() or 0
+    new_role_id = max_role_id + 1
+
+    if Stats.query.filter_by(day=day).first():
+        flash("Day already exists. Please use a different day.", "error")
+        return redirect(url_for('analytics'))
+
+    new_graph = Stats(id=new_role_id,
+                      day=day,
                       products_sold=product,
                       daily_sale=sales_today,
                       daily_customers=customers_today,
@@ -193,16 +241,6 @@ def add_graph():
     db.session.commit()
     flash('Statistics Added Successfully!')
     return redirect(url_for('analytics'))
-
-
-def get_lowest_unused_id():
-    existing_ids = [stat.id for stat in Stats.query.with_entities(Stats.id).all()]
-    if not existing_ids:
-        return 1
-
-    for i in range(1, max(existing_ids) + 2):
-        if i not in existing_ids:
-            return i
 
 @app.route('/analytics')
 def analytics():
@@ -216,10 +254,15 @@ def update(id:int):
     stat = Stats.query.get_or_404(id)
     if request.method == "POST":
         stat.products_sold = request.form['products_sold']
+        stat.day = request.form['day']
         stat.daily_sale = request.form['daily_sale']
         stat.daily_customers = request.form['daily_customers']
         stat.daily_unique_customers = request.form['daily_unique_customers']
         stat.money_spent_customer = request.form['money_spent_customer']
+
+        if Stats.query.filter_by(day=stat.day).first():
+            flash("Day already exists. Please use a different day.", "error")
+            return redirect(url_for('analytics'))
 
         db.session.commit()
         flash("Analytic updated successfully!", "success")
@@ -875,7 +918,12 @@ def customer_account():
         orders = Order.query.filter_by(customer_email=session.get('email')).all()
         notifications = 1  # Example
         user_points = 8888  # Example
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+
+        userid = session['user_id']
+        user = User.query.get_or_404(userid)
+        filename = user.profile_picture
+
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points, profile_picture=filename)
     else:
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
