@@ -12,9 +12,9 @@
 
       <div class="row">
         <div class="col-9 d-flex">
-            <img src="static/pfp/lawyer.png" class="pfp rounded-circle m-5 img-fluid" alt="Profile">
+            <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid w-25" alt="Profile">
             <div class="my-auto">
-                <h1>Welcome, User!</h1>
+                <h1>Welcome, {{ session['role'].capitalize() }}!</h1>
                 <p class="lead">Organise your business and improve your performance here!</p>
             </div>
         </div>
@@ -60,6 +60,26 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="orders mb-5">
+        <h3>View Current Orders</h3>
+        <table>
+            <tr>
+                <th>Order ID</th>
+                <th>Location</th>
+                <th>Cost</th>
+                <th>Action</th>
+            </tr>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.location }}</td>
+                <td>${{ order.total }}</td>
+                <td><a href="{{ url_for('staff_order_summary', order_id=order.id) }}">Find out more</a></td>
+            </tr>
+            {% endfor %}
+        </table>
       </div>
 
     </div>

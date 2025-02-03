@@ -110,5 +110,6 @@ h2 {
 }
 
 .signup-button:hover {
+    color: black;
     background-color: #D4B59E;
 }

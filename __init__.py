@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request,send_file, jsonify, redirect, url_for, flash , session
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
 from datetime import datetime
 import re
 import os
@@ -6,7 +6,12 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
-from dashboard import create_dash_app
+import dash
+from dash import dcc, html
+import pandas as pd
+import plotly.express as px
+print('hla')
+
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -22,37 +27,58 @@ def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Allowed_Extensions
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
     'orders': 'sqlite:///orders.db',
     'statistics': 'sqlite:///statistics.db',
     'user': 'sqlite:///user.db',
+    'rewards': 'sqlite:///rewards.db',
+    'feedback': 'sqlite:///feedback.db',
+    'replies': 'sqlite:///replies.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+# Define Feedback model
+class Feedback(db.Model):
+    __bind_key__ = 'feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_type = db.Column(db.String(50), nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    replied = db.Column(db.Boolean, default=False)
+
+# Define Reply model
+class Reply(db.Model):
+    __bind_key__ = 'replies'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), nullable=False)
+    reply_message = db.Column(db.Text, nullable=False)
+    date_replied = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Reward(db.Model):
+    __bind_key__ = 'rewards'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+    # the Reward class defines a db model for the rewards table, for a unique id
+    # , a required name, the points_required to claim the reward, and an optional description.
 
 
 class Stats(db.Model):
     __bind_key__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
+    day = db.Column(db.Integer, nullable=True)
     products_sold = db.Column(db.Integer, nullable=False)
     daily_sale = db.Column(db.Integer, nullable=False)
     daily_customers = db.Column(db.Integer, nullable=False)
     daily_unique_customers = db.Column(db.Integer, nullable=False)
     money_spent_customer = db.Column(db.Integer, nullable=False)
 
-
-with app.app_context():
-    if not os.path.exists('rewards.db'):
-        db.create_all()
 
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
@@ -65,23 +91,24 @@ class InventoryItem(db.Model):
     price = db.Column(db.Float, nullable=False)
 
 
-
 class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False) # no two users can have the same email
+    password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
-    profile_picture = db.Column(db.String(), nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+    # hashes the user’s password using generate_password_hash and stores it in the password_hash field.
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    # returns True if the password is correct, False otherwise.
+
 
 class Customer(db.Model):
     __bind_key__ = 'orders'
@@ -155,34 +182,79 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
-create_dash_app(app)
-with app.app_context():
-    data = User.query.all()
-    for i in data:
-        print(f"{i.id}, {i.name}, {i.role}")
-
 @app.context_processor
 def inject_user():
     user_id = session.get('user_id')
-    return {'user': user_id}
+    return {'userid': user_id}
 
+def create_dash_app(app):
+    dash_app = dash.Dash(__name__, server=app, url_base_pathname='/dash/')
+
+    # Query the database for days and sales
+    with app.app_context():
+        stats = Stats.query.all()
+        days = [stat.day for stat in stats]
+        sales = [stat.daily_sale for stat in stats]
+
+    # Create the DataFrame using the queried data
+    data = pd.DataFrame({
+        'X': days,  # Day values for the X axis
+        'Y': sales,  # Sales values for the Y axis
+    })
+
+    data = data.sort_values(by="X")
+
+    # Create the figure for the line graph
+    fig = px.line(
+        data,
+        x='X',
+        y='Y',
+        labels={'X': 'Days', 'Y': 'Sales'},
+    )
+
+    fig.update_layout(height=300)
+
+    # Set the layout for the Dash app
+    dash_app.layout = html.Div([
+        dcc.Graph(id='line-graph', figure=fig)
+    ])
+
+    return dash_app
+
+
+create_dash_app(app)
 
 
 @app.route('/staff_analytics')
 def staff_analytics():
-    return render_template('staffanalytics.html', active_page='staffanalytics')
+    max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
+    stats = Stats.query.all()
+    for i in stats:
+        print(i.day)
+
+    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry)
+
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
     product = request.form['products_sold']
+    day = request.form['day']
     sales_today = request.form['sales_today']
     customers_today = request.form['customers_today']
     unique_customers_today = request.form['unique_customers_today']
     money_spent_customer = request.form['money_spent_customer']
 
-    lowest_id = get_lowest_unused_id()
+    #new_user = session['user_id']
 
-    new_graph = Stats(id=lowest_id,
+    max_role_id = db.session.query(db.func.max(Stats.id)).scalar() or 0
+    new_role_id = max_role_id + 1
+
+    if Stats.query.filter_by(day=day).first():
+        flash("Day already exists. Please use a different day.", "error")
+        return redirect(url_for('analytics'))
+
+    new_graph = Stats(id=new_role_id,
+                      day=day,
                       products_sold=product,
                       daily_sale=sales_today,
                       daily_customers=customers_today,
@@ -192,16 +264,6 @@ def add_graph():
     db.session.commit()
     flash('Statistics Added Successfully!')
     return redirect(url_for('analytics'))
-
-
-def get_lowest_unused_id():
-    existing_ids = [stat.id for stat in Stats.query.with_entities(Stats.id).all()]
-    if not existing_ids:
-        return 1
-
-    for i in range(1, max(existing_ids) + 2):
-        if i not in existing_ids:
-            return i
 
 @app.route('/analytics')
 def analytics():
@@ -215,10 +277,15 @@ def update(id:int):
     stat = Stats.query.get_or_404(id)
     if request.method == "POST":
         stat.products_sold = request.form['products_sold']
+        stat.day = request.form['day']
         stat.daily_sale = request.form['daily_sale']
         stat.daily_customers = request.form['daily_customers']
         stat.daily_unique_customers = request.form['daily_unique_customers']
         stat.money_spent_customer = request.form['money_spent_customer']
+
+        if Stats.query.filter_by(day=stat.day).first():
+            flash("Day already exists. Please use a different day.", "error")
+            return redirect(url_for('analytics'))
 
         db.session.commit()
         flash("Analytic updated successfully!", "success")
@@ -262,7 +329,12 @@ def register():
         password = request.form['password']
         contact_number = request.form['contact_number']
         role = request.form['role']  # "staff" or "customer"
-        profile_picture = request.form['profile']
+        profile_picture = request.files['profile']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
 
         # Check if the email already exists
         if User.query.filter_by(email=email).first():
@@ -280,7 +352,7 @@ def register():
             contact_number=contact_number,
             role=role,
             role_id=new_role_id,
-            profile_picture=profile_picture,
+            profile_picture=filename,
         )
         new_user.set_password(password)
         db.session.add(new_user)
@@ -853,7 +925,11 @@ def staff_dashboard():
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
+        userid = session['user_id']
+        user = User.query.get_or_404(userid)
+        filename = user.profile_picture
+
+        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", userid=session['user_id'], profile_picture=filename)
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
@@ -865,7 +941,12 @@ def customer_account():
         orders = Order.query.filter_by(customer_email=session.get('email')).all()
         notifications = 1  # Example
         user_points = 8888  # Example
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+
+        userid = session['user_id']
+        user = User.query.get_or_404(userid)
+        filename = user.profile_picture
+
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points, profile_picture=filename)
     else:
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
