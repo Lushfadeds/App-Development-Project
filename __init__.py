@@ -135,8 +135,6 @@ class Order(db.Model):
     status = db.Column(db.String(20), default="Pending")
 
 
-
-
 class OrderItem(db.Model):
     __bind_key__ = 'orders'
     __tablename__ = 'order_item'
@@ -148,8 +146,6 @@ class OrderItem(db.Model):
 
     # Relationships
     order = db.relationship('Order', backref='order_items')
-
-
 
 
 # Create the database table
@@ -182,10 +178,12 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
+
 @app.context_processor
 def inject_user():
     user_id = session.get('user_id')
     return {'userid': user_id}
+
 
 def create_dash_app(app):
     dash_app = dash.Dash(__name__, server=app, url_base_pathname='/dash/')
@@ -328,7 +326,6 @@ def register():
         email = request.form['email']
         password = request.form['password']
         contact_number = request.form['contact_number']
-        role = request.form['role']  # "staff" or "customer"
         profile_picture = request.files['profile']
 
         # Secure the filename and save it in the 'pfp' folder
@@ -350,7 +347,6 @@ def register():
             name=name,
             email=email,
             contact_number=contact_number,
-            role=role,
             role_id=new_role_id,
             profile_picture=filename,
         )
