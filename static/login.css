@@ -68,16 +68,11 @@ body {
 
 
 /* Styling for the right-side sign-up section */
-.mt-3 {
-    position: absolute;
-    right: 0;
-    top: 56.7%;
-    transform: translateY(-50%);
-    height: 670px;
+.signup {
     width: 30%;
     background-color: #ECECEB;
     padding: 60px;
-      transition: all 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 
