@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request,send_file, jsonify, redirect, url_for, flash , session
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
 from datetime import datetime
 import re
 import os
@@ -26,22 +26,46 @@ def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Allowed_Extensions
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
     'orders': 'sqlite:///orders.db',
     'statistics': 'sqlite:///statistics.db',
     'user': 'sqlite:///user.db',
+    'rewards': 'sqlite:///rewards.db',
+    'feedback': 'sqlite:///feedback.db',
+    'replies': 'sqlite:///replies.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+# Define Feedback model
+class Feedback(db.Model):
+    __bind_key__ = 'feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_type = db.Column(db.String(50), nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    replied = db.Column(db.Boolean, default=False)
+
+# Define Reply model
+class Reply(db.Model):
+    __bind_key__ = 'replies'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), nullable=False)
+    reply_message = db.Column(db.Text, nullable=False)
+    date_replied = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Reward(db.Model):
+    __bind_key__ = 'rewards'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+    # the Reward class defines a db model for the rewards table, for a unique id
+    # , a required name, the points_required to claim the reward, and an optional description.
 
 
 class Stats(db.Model):
@@ -55,10 +79,6 @@ class Stats(db.Model):
     money_spent_customer = db.Column(db.Integer, nullable=False)
 
 
-with app.app_context():
-    if not os.path.exists('rewards.db'):
-        db.create_all()
-
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
     __tablename__ = 'inventory_item'  # Explicitly set table name
@@ -70,23 +90,24 @@ class InventoryItem(db.Model):
     price = db.Column(db.Float, nullable=False)
 
 
-
 class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False) # no two users can have the same email
+    password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
-    profile_picture = db.Column(db.String(), nullable=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+    # hashes the user’s password using generate_password_hash and stores it in the password_hash field.
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    # returns True if the password is correct, False otherwise.
+
 
 class Customer(db.Model):
     __bind_key__ = 'orders'
@@ -211,6 +232,7 @@ def staff_analytics():
         print(i.day)
 
     return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry)
+
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
