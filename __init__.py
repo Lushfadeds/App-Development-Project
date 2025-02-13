@@ -10,7 +10,6 @@ import dash
 from dash import dcc, html
 import pandas as pd
 import plotly.express as px
-print('hla')
 
 
 app = Flask(__name__)
@@ -99,7 +98,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
-    role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
+    profile_picture = db.Column(db.String(255), nullable=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -306,6 +305,10 @@ def delete(id):
 def aboutus():
     return render_template('aboutus.html')
 
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
+
 
 @app.route('/')
 def home():
@@ -317,6 +320,20 @@ def home():
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
     return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
+
+
+def get_lowest_available_id():
+    ids = [user.id for user in User.query.with_entities(User.id).all()]
+    max_id = max(ids, default=0)  # Ensures it doesn't fail when list is empty
+    return max_id + 1
+
+    #existing_ids = {user.id for user in User.query.with_entities(User.id).all()}  # Get all existing user IDs as a set
+    #new_id = 1  # Start checking from ID 1
+    #
+    #while new_id in existing_ids:
+    #    new_id += 1  # Find the first missing ID
+
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -338,16 +355,15 @@ def register():
             flash('Email is already registered.')
             return redirect(url_for('register'))
 
-        # Increment the role_id
-        max_role_id = db.session.query(db.func.max(User.role_id)).scalar() or 0
-        new_role_id = max_role_id + 1
+        new_id = get_lowest_available_id()
 
         # Create a new user
         new_user = User(
+            id=new_id,
             name=name,
             email=email,
             contact_number=contact_number,
-            role_id=new_role_id,
+            role='customer',
             profile_picture=filename,
         )
         new_user.set_password(password)
@@ -942,7 +958,8 @@ def customer_account():
         user = User.query.get_or_404(userid)
         filename = user.profile_picture
 
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points, profile_picture=filename)
+
+        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points, profile_picture=filename, name=user.name)
     else:
         print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
