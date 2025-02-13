@@ -151,6 +151,23 @@ class OrderItem(db.Model):
 with app.app_context():
     db.create_all()
 
+    if not User.query.filter_by(role='admin').first():
+        admin_user = User(
+            id=1,
+            name='admin',
+            email='admin@mamaks.com',
+            contact_number='',
+            role='admin',
+            profile_picture='',
+        )
+        admin_user.set_password('admin123')
+        db.session.add(admin_user)
+        db.session.commit()
+        print('Admin has been created')
+    else:
+        print('Existing Admin Found')
+
+
     if not InventoryItem.query.first():
         # Define initial items
         initial_items = [
@@ -324,16 +341,8 @@ def home():
 
 def get_lowest_available_id():
     ids = [user.id for user in User.query.with_entities(User.id).all()]
-    max_id = max(ids, default=0)  # Ensures it doesn't fail when list is empty
+    max_id = max(ids, default=0)
     return max_id + 1
-
-    #existing_ids = {user.id for user in User.query.with_entities(User.id).all()}  # Get all existing user IDs as a set
-    #new_id = 1  # Start checking from ID 1
-    #
-    #while new_id in existing_ids:
-    #    new_id += 1  # Find the first missing ID
-
-
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -974,6 +983,8 @@ def login():
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
         elif session['role'] == 'customer':
             return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+        elif session['role'] == 'admin':
+            return redirect(url_for('admin'))
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -991,6 +1002,8 @@ def login():
                 return redirect(url_for('staff_dashboard'))
             elif user.role == 'customer':
                 return redirect(url_for('customer_account'))
+            elif user.role == 'admin':
+                return redirect(url_for('admin'))
         else:
             session.clear()
             flash('Invalid email or password. Please try again.', 'danger')
