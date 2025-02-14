@@ -372,7 +372,7 @@ def register():
             name=name,
             email=email,
             contact_number=contact_number,
-            role='customer',
+            role='staff',
             profile_picture=filename,
         )
         new_user.set_password(password)
