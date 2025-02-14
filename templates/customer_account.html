@@ -1,45 +1,71 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="account-container">
-    <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
-     <!-- Logout Button -->
-    <div class="logout-section">
-        <form method="POST" action="{{ url_for('logout') }}">
-            <button type="submit" class="logout-btn">Logout</button>
-        </form>
-    </div>
-    
-    <div class="stats-section">
-        <div class="stat-card">
-            <h3>You currently have:</h3>
-            <p>{{ user_points }} points</p>
-            <button>Redeem Rewards</button>
+<link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
+
+<div class="container-fluid px-0 my-5">
+
+  <div class="row">
+
+    <div class="col-11 mx-auto">
+
+      <div class="row mb-2">
+        <div class="col-9 d-flex">
+            <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid" alt="Profile">
+            <div class="my-auto">
+                <h1>Welcome, {{ name }}!</h1>
+                <p class="lead">Organise your business and improve your performance here!</p>
+            </div>
         </div>
-        <div class="stat-card">
-            <h3>You currently have:</h3>
-            <p>{{ notifications }} Notification(s)</p>
-            <button>View Notifications</button>
+      </div>
+
+      <div class="row mb-5">
+        <div class="col-6">
+          <div class="card h-100">
+            <div class="card-body p-0">
+                <h5 class="card-title fw-bold pt-3 px-3">You currently have:</h5>
+                <p class="revenue card-text px-3">{{ user_points }} points</p>
+                <div class="d-flex justify-content-center">
+                    <a href="#" class="btn btn-primary w-75 fs-5 fw-bold p-2 mt-2 mb-4">Redeem Rewards</a>
+                </div>
+            </div>
+          </div>
         </div>
+
+        <div class="col-6">
+          <div class="card h-100">
+            <div class="card-body p-0">
+                <h5 class="card-title fw-bold pt-3 px-3">You currently have:</h5>
+                <p class="revenue card-text px-3">{{ notifications }} Notification(s)</p>
+                <div class="d-flex justify-content-center">
+                    <a href="#" class="btn btn-primary w-75 fs-5 fw-bold p-2 mt-2 mb-4">View notifications</a>
+                </div>
+            </div>
+          </div>
+        </div>
+          <div class="orders mt-5">
+              <div class="table">
+                    <h2>View Current Orders</h2>
+                    <table>
+                        <tr>
+                            <th scope="col">Order ID</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Cost</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.location }}</td>
+                            <td>${{ order.total }}</td>
+                            <td><a href="{{ url_for('order_summary', order_id=order.id) }}">Find out more</a></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+          </div>
+
+      </div>
     </div>
-    
-    <div class="orders">
-        <h3>View Current Orders</h3>
-        <table>
-            <tr>
-                <th>Order ID</th>
-                <th>Location</th>
-                <th>Cost</th>
-                <th>Action</th>
-            </tr>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.id }}</td>
-                <td>{{ order.location }}</td>
-                <td>${{ order.total }}</td>
-                <td><a href="{{ url_for('order_summary', order_id=order.id) }}">Findut more</a></td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
+  </div>
 </div>
 {% endblock %}

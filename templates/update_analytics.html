@@ -5,38 +5,41 @@
 <link href="{{ url_for('static', filename='update_analytics.css') }}" rel="stylesheet">
 
 
-<div class="overlay-content">
-    <div class="overlay-header">
-        <h2>Update Statistics</h2>
-        <button class="close-btn" id="close-btn">&times;</button>
-    </div>
-    <form method="POST" class="overlay-form px-3 action=">
-        <div>
-            <label>Products Sold:</label>
+<div class="container card my-5 w-50 py-5 px-4">
+    <h1>Update Statistics</h1>
+
+    <form method="POST" class="form">
+        <div class="form-group">
+            <label>Day:</label><br>
+            <input type="number" name="day" value="{{ stat.day }}" min='1' max='31' required>
+            <br>
+        </div>
+        <div class="form-group">
+            <label>Products Sold:</label><br>
             <input type="number" name="products_sold" value="{{ stat.products_sold }}" required>
             <br>
         </div>
-        <div>
-            <label>Daily Sale:</label>
+        <div class="form-group">
+            <label>Daily Sale:</label><br>
             <input type="number" name="daily_sale" value="{{ stat.daily_sale }}" required>
             <br>
         </div>
-        <div>
-            <label>Daily Customers:</label>
+        <div class="form-group">
+            <label>Daily Customers:</label><br>
             <input type="number" name="daily_customers" value="{{ stat.daily_customers }}" required>
             <br>
         </div>
-        <div>
-            <label>Daily Unique Customers:</label>
+        <div class="form-group">
+            <label>Daily Unique Customers:</label><br>
             <input type="number" name="daily_unique_customers" value="{{ stat.daily_unique_customers }}" required>
             <br>
         </div>
-        <div>
-            <label>Money Spent Per Customer:</label>
+        <div class="form-group">
+            <label>Money Spent Per Customer:</label><br>
             <input type="number" name="money_spent_customer" value="{{ stat.money_spent_customer }}" required>
             <br>
         </div>
-        <button type="submit">Update</button>
+        <button type="submit" class="btn btn-success">Update</button>
     </form>
 </div>
 
