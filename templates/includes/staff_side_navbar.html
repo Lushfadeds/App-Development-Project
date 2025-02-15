@@ -3,7 +3,9 @@
 <div class="col-4 sidebar fs-5">
     <a href="{{ url_for('staff_dashboard') }}" class="{% if active_page == 'staff_dashboard' %}active{% endif %}"><i class="fa-solid fa-house"></i> Dashboard</a>
     <a href="{{ url_for('staff_analytics') }}" class="{% if active_page == 'staffanalytics' %}active{% endif %}"><i class="fa-solid fa-chart-line"></i>Analytics</a>
-    <a href="#"><i class="fa-solid fa-calendar"></i>Orders</a>
+    <a href="#"><i class="fa-solid fa-calendar"></i>Events/Orders</a>
     <a href="{{url_for('inventory_page')}}" class="{% if active_page == 'inventory_page' %}active{% endif %}"><i class="fa-solid fa-box"></i>Inventory</a>
     <a href="{{ url_for('rewards_index') }}" class="{% if active_page == 'rewards' %}active{% endif %}"><i class="fa-solid fa-award"></i>Rewards</a>
+    <a href="{{ url_for('contact_us_data') }}" class="{% if active_page == 'contact_us_data' %}active{% endif %}"><i class="fa-solid fa-child"></i>Contact Us</a>
+
 </div>

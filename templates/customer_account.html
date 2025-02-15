@@ -11,6 +11,11 @@
             <div class="my-auto">
                 <h1>Welcome, {{ name }}!</h1>
                 <p class="lead">Checkout your orders and earn rewards!</p>
+                 {% if userid %}
+                    <form method="POST" action="{{ url_for('logout') }}">
+                        <button type="submit" class="btn fw-bold">Log out</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
       </div>
