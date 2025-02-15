@@ -107,6 +107,8 @@ class User(db.Model):
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     profile_picture = db.Column(db.String(255), nullable=False)
+    points = db.Column(db.Integer, default=0)  #  Default points set to 0
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -421,7 +423,7 @@ def register():
             name=name,
             email=email,
             contact_number=contact_number,
-            role='staff',
+            role='customer',
             profile_picture=filename,
         )
         new_user.set_password(password)
@@ -475,38 +477,42 @@ def delete_rewards(id):
     flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
 
-
-
-user_points = 8888
-
-
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
-    global user_points
+    if 'user_id' not in session:
+        flash("Please log in to redeem rewards.", "danger")
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash("User not found. Please log in again.", "danger")
+        return redirect(url_for('login'))
+
     message = None
 
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
         reward = Reward.query.get(reward_id)
 
-        if reward and user_points >= reward.points_required:
-            user_points -= reward.points_required  # Deduct points
+        if reward and user.points >= reward.points_required:
+            user.points -= reward.points_required  # ✅ Deduct points from the database
+            db.session.commit()
 
             # ✅ Correctly determine discount value
             discount_value = 0
             if "Free Shipping" in reward.name:
                 discount_value = 13.50  # Free shipping discount
             elif "20% Discount" in reward.name:
-                discount_value = -1  # Placeholder for percentage-based discount (to be applied at checkout)
+                discount_value = -1  # Placeholder for percentage-based discount (applied at checkout)
             else:
                 discount_value = float(reward.name.replace("$", "").split(" ")[0])  # Extract value from reward name
 
-            # ✅ Store redeemed reward in `redeemed_rewards.db` with correct discount
+            # ✅ Store redeemed reward in `redeemed_rewards.db`
             redeemed_reward = RedeemedReward(
-                user_id=session['user_id'],
+                user_id=user.id,
                 reward_name=reward.name,
                 points_used=reward.points_required,
-                discount_value=discount_value,  # Store actual discount
+                discount_value=discount_value,
                 status="Unused"
             )
             db.session.add(redeemed_reward)
@@ -521,7 +527,7 @@ def rewards_page():
     return render_template(
         'rewards.html',
         rewards=rewards,
-        user_points=user_points,
+        user_points=user.points,  # ✅ Fetch actual points from DB
         message=message
     )
 
@@ -1050,9 +1056,9 @@ def customer_account():
             'customer_account.html',
             profile_picture=user.profile_picture,
             name=user.name,
-            user_points=user_points,
-            redeemed_rewards=redeemed_rewards,  # ✅ Pass unused rewards
-            pending_orders=pending_orders  # ✅ Pass only pending orders
+            user_points=user.points,  # ✅ Use points from DB instead of a global variable
+            redeemed_rewards=redeemed_rewards,
+            pending_orders=pending_orders
         )
     else:
         flash('Please log in to access your account.', 'warning')
