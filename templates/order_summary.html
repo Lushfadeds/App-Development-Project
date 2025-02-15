@@ -50,11 +50,26 @@
                 {% endfor %}
             </tbody>
             <tfoot>
-                <tr>
-                    <td colspan="4"><strong>Total Cost (Not inclusive of GST and service charge):</strong></td>
-                    <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
-                </tr>
-            </tfoot>
+                <tfoot>
+                    <tr>
+                        <td colspan="4"><strong>Subtotal:</strong></td>
+                        <td><strong>${{ "%.2f"|format(total_price) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"><strong>Shipping Cost:</strong></td>
+                        <td><strong>${{ "%.2f"|format(order.shipping_cost) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"><strong>Discount Applied:</strong></td>
+                        <td><strong>-${{ "%.2f"|format(order.discount_applied or 0) }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"><strong>Final Total (After Shipping & Discount):</strong></td>
+                        <td><strong>${{ "%.2f"|format(total_price + order.shipping_cost - (order.discount_applied or 0)) }}</strong></td>
+                    </tr>
+                </tfoot>
+
+
         </table>
 
         <!-- Download Section (Text and Button Side by Side) -->

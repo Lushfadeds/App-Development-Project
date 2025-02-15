@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+{% extends "staff_base.html" %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='rewards_index.css') }}">
 
 <div class="container-fluid px-0">
     <div class="row">
-        {% include 'includes/staff_navbar.html' %}
+        {% include 'includes/staff_side_navbar.html' %}
         <div class="col-9 mx-auto">
             <div class="row">
                 <h1 class="text-center">Rewards List</h1>
