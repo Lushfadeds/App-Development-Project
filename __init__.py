@@ -1125,7 +1125,7 @@ def staff_dashboard():
 
 @app.route('/customer_account')
 def customer_account():
-    if 'role' in session and session['role'] == 'customer':
+    if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
 
@@ -1153,7 +1153,7 @@ def login():
     if 'role' in session:
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
-        elif session['role'] == 'customer':
+        elif session['role'] == 'Customer':
             return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
         elif session['role'] == 'admin':
             return redirect(url_for('admin'))
@@ -1172,7 +1172,7 @@ def login():
             # Redirect based on role
             if user.role == 'staff':
                 return redirect(url_for('staff_dashboard'))
-            elif user.role == 'customer':
+            elif user.role == 'Customer':
                 return redirect(url_for('customer_account'))
             elif user.role == 'admin':
                 return redirect(url_for('admin'))
