@@ -10,6 +10,9 @@ import dash
 from dash import dcc, html
 import pandas as pd
 import plotly.express as px
+from datetime import datetime, date
+import random
+import json  # ✅ Add this at the top of your script
 
 
 app = Flask(__name__)
@@ -108,7 +111,9 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     profile_picture = db.Column(db.String(255), nullable=False)
     points = db.Column(db.Integer, default=0)  #  Default points set to 0
-
+    streak = db.Column(db.Integer, default=0)  # Streak starts at 0
+    last_login = db.Column(db.Date, nullable=True, default=None)  # ✅ Ensure `last_login` starts as `None`
+    streak_data = db.Column(db.Text, default="{}")  # ✅ Store login history as JSON
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -1125,7 +1130,7 @@ def staff_dashboard():
 
 @app.route('/customer_account')
 def customer_account():
-    if 'role' in session and session['role'] == 'customer':
+    if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
 
@@ -1153,7 +1158,7 @@ def login():
     if 'role' in session:
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
-        elif session['role'] == 'customer':
+        elif session['role'] == 'Customer':
             return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
         elif session['role'] == 'admin':
             return redirect(url_for('admin'))
@@ -1172,7 +1177,7 @@ def login():
             # Redirect based on role
             if user.role == 'staff':
                 return redirect(url_for('staff_dashboard'))
-            elif user.role == 'customer':
+            elif user.role == 'Customer':
                 return redirect(url_for('customer_account'))
             elif user.role == 'admin':
                 return redirect(url_for('admin'))
@@ -1231,37 +1236,50 @@ def submit_contact_us():
 
 @app.route('/points_system')
 def points_system():
-    # Initialize session variables if not set
-    if 'points' not in session:
-        session['points'] = 0
-    if 'last_login' not in session:
-        session['last_login'] = None
-    if 'streak' not in session:
-        session['streak'] = 0
+    # Ensure user is logged in
+    if 'user_id' not in session:
+        flash("Please log in to access this page.", "danger")
+        return redirect(url_for('login'))
 
-    # Check if the user logs in on a new day
-    today = datetime.now().date()
-    last_login = session['last_login']
+    # Fetch the user from the database
+    user = User.query.get(session['user_id'])
 
-    if last_login is None or last_login != str(today):
-        session['last_login'] = str(today)
-        session['streak'] += 1
-        session['points'] += 2  # Add points for daily login
+    # Ensure user exists and is a customer
+    if not user or user.role.lower() != "customer":
+        flash("Only customers can access this page.", "danger")
+        return redirect(url_for('customer_account' if user.role == "customer" else 'staff_dashboard'))
 
-    return render_template('points_system.html', points=session['points'], streak=session['streak'])
+    return render_template('points_system.html', points=user.points, streak=user.streak)
 
 @app.route('/spin', methods=['POST'])
 def spin():
-    import random
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
 
-    # Spin the wheel and get random points
-    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role != 'Customer':  # ✅ Only customers can spin the wheel
+        return jsonify({'error': 'Only Customers can spin the wheel'}), 403
+
+    today = datetime.utcnow().date()
+
+    # Prevent spinning more than once per day
+    if session.get('spun_today') == today.isoformat():
+        return jsonify({'error': 'You already spun the wheel today', 'points': user.points})
+
+    outcomes = [2, 3, 5, 10, 0]  # Possible point rewards
     result = random.choice(outcomes)
 
-    # Update points in session
-    session['points'] += result
+    user.points += result
+    session['spun_today'] = today.isoformat()  # ✅ Track spin without modifying streak
+    db.session.commit()
 
-    return {'result': result, 'points': session['points']}
+    return jsonify({
+        'message': f'You won {result} points!',
+        'result': result,
+        'points': user.points
+    })
 
 
 @app.route('/download_receipt/<int:order_id>')
@@ -1398,6 +1416,72 @@ def use_reward(reward_id):
 
     flash(f"{reward.reward_name} applied! Discount of ${session['applied_discount']} will be deducted at checkout.", "success")
     return redirect(url_for('checkout'))
+
+
+@app.route('/collect_points', methods=['POST'])
+def collect_points():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role != 'Customer':
+        return jsonify({'error': 'Only Customers can collect points'}), 403
+
+    today = date.today()
+
+    # ✅ Only update streak when user actually clicks "Collect Points"
+    if user.last_login == today:
+        return jsonify({'error': 'You already collected points today', 'points': user.points})
+
+    # **Fix Streak Calculation**
+    if user.last_login is None or (today - user.last_login).days > 1:
+        user.streak = 1  # Reset streak if missed a day
+    else:
+        user.streak += 1  # Continue streak
+
+    # ✅ Correct Points Calculation
+    earned_points = min(user.streak * 10, 100)  # Max cap of 100 points
+    user.points += earned_points
+    user.last_login = today
+
+    # ✅ Store streak history correctly
+    streak_data = json.loads(user.streak_data or "{}")
+    weekday = today.strftime("%A")
+    streak_data[weekday] = today.isoformat()  # Store as date
+    user.streak_data = json.dumps(streak_data)  # ✅ Save streak data
+
+    db.session.commit()
+
+    return jsonify({
+        'message': f'Collected {earned_points} points!',
+        'points': user.points,
+        'streak': user.streak,
+        'streakData': streak_data  # ✅ Send updated streak data
+    })
+
+@app.route('/get_user_data', methods=['GET'])
+def get_user_data():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
+
+    user = db.session.get(User, session['user_id'])  # ✅ Use `db.session.get()`
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # ✅ Convert streakData from JSON safely
+    try:
+        streak_data = json.loads(user.streak_data) if user.streak_data else {}
+    except json.JSONDecodeError:
+        streak_data = {}
+
+    return jsonify({
+        'points': user.points,
+        'streak': user.streak,
+        'streakData': streak_data  # ✅ Ensure streakData is always returned correctly
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
