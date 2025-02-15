@@ -12,7 +12,7 @@
 
       <div class="row">
         <div class="col-9 d-flex">
-            <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid w-25" alt="Profile">
+            <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid w-30" alt="Profile">
             <div class="my-auto">
                 <h1>Welcome, {{ session['role'].capitalize() }}!</h1>
                 <p class="lead">Organise your business and improve your performance here!</p>
@@ -92,6 +92,8 @@
                 {% endif %}
             </tbody>
         </table>
+      </div>
     </div>
+      </div>
 </div>
 {% endblock %}
