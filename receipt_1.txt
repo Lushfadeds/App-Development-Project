@@ -1,0 +1,13 @@
+Receipt for Order 1
+
+Date: 2025-02-05
+Time: 19:19
+Location: blk 168 bukit timah #02-1199
+
+Items Ordered:
+Tin Biscuits - 5 x $3.50 = $17.50
+
+Shipping Cost: $13.50
+Discount Applied: -$15.00
+
+Final Total (After Shipping & Discount): $16.00

@@ -1,0 +1,11 @@
+.form div {
+    margin-bottom: 20px;
+}
+
+.form label {
+    margin-bottom: 5px;
+}
+
+.shadow-sm {
+    box-shadow: 1px 3px 2px black;
+}

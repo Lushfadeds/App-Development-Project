@@ -16,7 +16,7 @@
         <table class="table table-bordered table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>#</th>
+                    <th>ID</th>
                     <th>Customer Name</th>
                     <th>Order Date</th>
                     <th>Location</th>
@@ -25,32 +25,36 @@
                 </tr>
             </thead>
             <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.id }}</td>
-                    <td>{{ order.customer_name }}</td>
-                    <td>{{ order.date }} {{ order.time }}</td>
-                    <td>{{ order.location }}</td>
-                    <td>
-                        {% if order.status == 'Pending' %}
-                            <button class="status-btn" type="button">Pending</button>
-                        {% else %}
-                            <button class="status-btn" disabled type="button">Accepted</button>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if order.status == 'Pending' %}
-                            <form action="{{ url_for('accept_order', order_id=order.id) }}" method="POST">
-                                <button type="submit" class="btn btn-accept">Accept Order</button>
-                            </form>
-                            <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="btn btn-view mt-2">View Details</a>
-                        {% else %}
-                            <span class="text-muted">Accepted</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    {% for order in orders %}
+    <tr>
+        <td>{{ order.id }}</td>
+        <td>{{ order.customer_name }}</td>
+        <td>{{ order.date }} {{ order.time }}</td>
+        <td>{{ order.location }}</td>
+        <td>
+            {% if order.status == 'Pending' %}
+                <!-- Display Pending status with non-clickable style -->
+                <span class="status-btn pending">Pending</span>
+            {% else %}
+                <!-- Display Accepted status with non-clickable style -->
+                <span class="status-btn accepted" disabled>Accepted</span>
+            {% endif %}
+        </td>
+        <td>
+            {% if order.status == 'Pending' %}
+                <!-- Show Accept Order and View Details buttons for Pending orders -->
+                <form action="{{ url_for('accept_order', order_id=order.id) }}" method="POST">
+                    <button type="submit" class="btn btn-accept">Accept Order</button>
+                </form>
+                <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="btn btn-view mt-2">View Details</a>
+            {% else %}
+                <!-- Display "Accepted" message if the order is accepted -->
+                <span class="text-muted">Accepted</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
         </table>
 
     </div>

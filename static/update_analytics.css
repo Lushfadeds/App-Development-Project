@@ -1,3 +1,15 @@
 .overlay {
     display: flex
 }
+
+.form div {
+    margin-bottom: 20px;
+}
+
+.form label {
+    margin-bottom: 5px;
+}
+
+.container {
+    background-color:
+}

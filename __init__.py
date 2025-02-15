@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request,send_file, jsonify, redirect, url_for, flash , session
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
 from datetime import datetime
 import re
 import os
@@ -6,7 +6,14 @@ from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from Inventory import Inventory
-from dashboard import create_dash_app
+import dash
+from dash import dcc, html
+import pandas as pd
+import plotly.express as px
+from datetime import datetime, date
+import random
+import json  # ✅ Add this at the top of your script
+
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -22,27 +29,56 @@ def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Allowed_Extensions
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rewards.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///main.db'
 app.config['SQLALCHEMY_BINDS'] = {
     'inventory': 'sqlite:///inventory.db',
     'orders': 'sqlite:///orders.db',
     'statistics': 'sqlite:///statistics.db',
     'user': 'sqlite:///user.db',
+    'rewards': 'sqlite:///rewards.db',
+    'feedback': 'sqlite:///feedback.db',
+    'replies': 'sqlite:///replies.db',
+    'redeemed_rewards': 'sqlite:///redeemed_rewards.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+# Define Feedback model
+class Feedback(db.Model):
+    __bind_key__ = 'feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_type = db.Column(db.String(50), nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    replied = db.Column(db.Boolean, default=False)
+
+# Define Reply model
+class Reply(db.Model):
+    __bind_key__ = 'replies'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), nullable=False)
+    reply_message = db.Column(db.Text, nullable=False)
+    date_replied = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Reward(db.Model):
+    __bind_key__ = 'rewards'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+    discount_value = db.Column(db.Float, nullable=False)  # New field to store actual discount
+
+    # the Reward class defines a db model for the rewards table, for a unique id
+    # , a required name, the points_required to claim the reward, and an optional description.
+
 
 
 class Stats(db.Model):
     __bind_key__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
+    day = db.Column(db.Integer, nullable=True)
     products_sold = db.Column(db.Integer, nullable=False)
     daily_sale = db.Column(db.Integer, nullable=False)
     daily_customers = db.Column(db.Integer, nullable=False)
@@ -65,23 +101,26 @@ class InventoryItem(db.Model):
     price = db.Column(db.Float, nullable=False)
 
 
-
 class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False) # no two users can have the same email
+    password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
-    role_id = db.Column(db.Integer, unique=True, nullable=False)  # Incremented role ID
-    profile_picture = db.Column(db.String(), nullable=True)
+    profile_picture = db.Column(db.String(255), nullable=False)
+    points = db.Column(db.Integer, default=0)  #  Default points set to 0
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+    # hashes the user’s password using generate_password_hash and stores it in the password_hash field.
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    # returns True if the password is correct, False otherwise.
+
 
 class Customer(db.Model):
     __bind_key__ = 'orders'
@@ -102,6 +141,8 @@ class Order(db.Model):
     location = db.Column(db.String(200), nullable=False)
     comments = db.Column(db.Text, nullable=True)
     total = db.Column(db.Float, nullable=True)
+    discount_applied = db.Column(db.Float, nullable=True, default=0.00)  # New field for discount
+    shipping_cost = db.Column(db.Float, nullable=True, default=13.50)  # New field for shipping
     shop_name = db.Column(db.String(100), nullable=True)
     shop_email = db.Column(db.String(100), nullable=True)
     shop_contact = db.Column(db.String(15), nullable=True)
@@ -124,11 +165,63 @@ class OrderItem(db.Model):
 
 
 
+class RedeemedReward(db.Model):
+    __bind_key__ = 'redeemed_rewards'  #  Ensure correct DB binding
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)  # Store user ID
+    reward_name = db.Column(db.String(100), nullable=False)
+    points_used = db.Column(db.Integer, nullable=False, default=0)  # ✅ Add points_used column
+    discount_value = db.Column(db.Float, nullable=False, default=0.0)
+    redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(10), default="Unused")  # New field to track usage
 
 # Create the database table
 with app.app_context():
+
     db.create_all()
 
+    if not User.query.filter_by(role='admin').first():
+        admin_user = User(
+            id=1,
+            name='admin',
+            email='admin@mamaks.com',
+            contact_number='11111111',
+            role='admin',
+            profile_picture='unknown.png',
+        )
+        admin_user.set_password('admin123')
+        db.session.add(admin_user)
+        db.session.commit()
+        print('Admin has been created')
+    else:
+        print('Existing Admin Found')
+
+    if not Reward.query.first():
+        default_rewards = [
+            {"name": "Free Shipping", "points_required": 1350, "description": "Get free shipping on your order.",
+             "discount_value": 13.50},
+            {"name": "$5 Voucher", "points_required": 500, "description": "Redeem a $5 shopping voucher.",
+             "discount_value": 5.00},
+            {"name": "20% Discount", "points_required": 2000, "description": "Get 20% off your next order.",
+             "discount_value": -1},  # -1 to dynamically calculate 20% later
+            {"name": "$20 Voucher", "points_required": 2000, "description": "Redeem a $20 shopping voucher.",
+             "discount_value": 20.00},
+            {"name": "$2 Voucher", "points_required": 200, "description": "Redeem a $2 shopping voucher.",
+             "discount_value": 2.00},
+            {"name": "$15 Voucher", "points_required": 1500, "description": "Redeem a $15 shopping voucher.",
+             "discount_value": 15.00},
+            {"name": "$50 Voucher", "points_required": 1000, "description": "Redeem a $50 shopping voucher.",
+             "discount_value": 50.00},
+        ]
+
+        # Insert default rewards into the database
+        for reward in default_rewards:
+            db.session.add(Reward(**reward))
+
+        db.session.commit()
+        print("✅ Default rewards added to the rewards database.")
+    else:
+        print("✅ Rewards database already populated.")
     if not InventoryItem.query.first():
         # Define initial items
         initial_items = [
@@ -155,34 +248,81 @@ with app.app_context():
     else:
         print("Existing inventory found in the database.")
 
-create_dash_app(app)
-with app.app_context():
-    data = User.query.all()
-    for i in data:
-        print(f"{i.id}, {i.name}, {i.role}")
 
 @app.context_processor
 def inject_user():
     user_id = session.get('user_id')
-    return {'user': user_id}
+    return {'userid': user_id}
 
+
+def create_dash_app(app):
+    dash_app = dash.Dash(__name__, server=app, url_base_pathname='/dash/')
+
+    # Query the database for days and sales
+    with app.app_context():
+        stats = Stats.query.all()
+        days = [stat.day for stat in stats]
+        sales = [stat.daily_sale for stat in stats]
+
+    # Create the DataFrame using the queried data
+    data = pd.DataFrame({
+        'X': days,  # Day values for the X axis
+        'Y': sales,  # Sales values for the Y axis
+    })
+
+    data = data.sort_values(by="X")
+
+    # Create the figure for the line graph
+    fig = px.line(
+        data,
+        x='X',
+        y='Y',
+        labels={'X': 'Days', 'Y': 'Sales'},
+    )
+
+    fig.update_layout(height=300)
+
+    # Set the layout for the Dash app
+    dash_app.layout = html.Div([
+        dcc.Graph(id='line-graph', figure=fig)
+    ])
+
+    return dash_app
+
+
+create_dash_app(app)
 
 
 @app.route('/staff_analytics')
 def staff_analytics():
-    return render_template('staffanalytics.html', active_page='staffanalytics')
+    max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
+    stats = Stats.query.all()
+    for i in stats:
+        print(i.day)
+
+    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry)
+
 
 @app.route('/add_graph', methods=['POST'])
 def add_graph():
     product = request.form['products_sold']
+    day = request.form['day']
     sales_today = request.form['sales_today']
     customers_today = request.form['customers_today']
     unique_customers_today = request.form['unique_customers_today']
     money_spent_customer = request.form['money_spent_customer']
 
-    lowest_id = get_lowest_unused_id()
+    #new_user = session['user_id']
 
-    new_graph = Stats(id=lowest_id,
+    max_role_id = db.session.query(db.func.max(Stats.id)).scalar() or 0
+    new_role_id = max_role_id + 1
+
+    if Stats.query.filter_by(day=day).first():
+        flash("Day already exists. Please use a different day.", "error")
+        return redirect(url_for('analytics'))
+
+    new_graph = Stats(id=new_role_id,
+                      day=day,
                       products_sold=product,
                       daily_sale=sales_today,
                       daily_customers=customers_today,
@@ -192,16 +332,6 @@ def add_graph():
     db.session.commit()
     flash('Statistics Added Successfully!')
     return redirect(url_for('analytics'))
-
-
-def get_lowest_unused_id():
-    existing_ids = [stat.id for stat in Stats.query.with_entities(Stats.id).all()]
-    if not existing_ids:
-        return 1
-
-    for i in range(1, max(existing_ids) + 2):
-        if i not in existing_ids:
-            return i
 
 @app.route('/analytics')
 def analytics():
@@ -215,10 +345,15 @@ def update(id:int):
     stat = Stats.query.get_or_404(id)
     if request.method == "POST":
         stat.products_sold = request.form['products_sold']
+        stat.day = request.form['day']
         stat.daily_sale = request.form['daily_sale']
         stat.daily_customers = request.form['daily_customers']
         stat.daily_unique_customers = request.form['daily_unique_customers']
         stat.money_spent_customer = request.form['money_spent_customer']
+
+        if Stats.query.filter_by(day=stat.day).first():
+            flash("Day already exists. Please use a different day.", "error")
+            return redirect(url_for('analytics'))
 
         db.session.commit()
         flash("Analytic updated successfully!", "success")
@@ -239,11 +374,119 @@ def delete(id):
 
 @app.route('/aboutus')
 def aboutus():
-    return render_template('aboutus.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
 
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('aboutus.html', profile_picture=profile_picture, userid=user_id)
+
+@app.route('/admin')
+def admin():
+    print(request.path)
+    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
+    return render_template('admin.html', user=users)
+
+@app.route('/delete_user/<int:id>', methods=['POST'])
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_edit/<int:id>', methods=['GET', 'POST'])
+def admin_edit(id):
+    if request.method == 'POST':
+        # Retrieve updated data from the form
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        user = User.query.get(id)
+
+        # Validate and process data
+        if name:
+            user.name = name
+        if email:
+            user.email = email
+        if contact_number:
+            user.contact_number = contact_number
+        if role:
+            user.role = role
+        if profile_picture:
+            # Save the file, generate the file path, and update the user profile picture
+            filename = secure_filename(profile_picture.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            profile_picture.save(filepath)
+            user.profile_picture = filename
+
+        # Commit the changes to the database
+        user.set_password(password)
+        db.session.commit()
+
+        flash('User updated successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_add', methods=['GET', 'POST'])
+def admin_add():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
+
+        # Check if the email already exists
+        if User.query.filter_by(email=email).first():
+            flash('Email is already registered.')
+            return redirect(url_for('register'))
+
+        new_id = get_lowest_available_id()
+
+        # Create a new user
+        new_user = User(
+            id=new_id,
+            name=name,
+            email=email,
+            contact_number=contact_number,
+            role=role,
+            profile_picture=filename,
+        )
+
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Successfully created user!')
+    return redirect(url_for('admin'))
 
 @app.route('/')
 def home():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
         ]
@@ -251,7 +494,13 @@ def home():
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community, profile_picture=profile_picture, userid=user_id)
+
+
+def get_lowest_available_id():
+    ids = [user.id for user in User.query.with_entities(User.id).all()]
+    max_id = max(ids, default=0)
+    return max_id + 1
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -261,27 +510,30 @@ def register():
         email = request.form['email']
         password = request.form['password']
         contact_number = request.form['contact_number']
-        role = request.form['role']  # "staff" or "customer"
-        profile_picture = request.form['profile']
+        profile_picture = request.files['profile']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
 
         # Check if the email already exists
         if User.query.filter_by(email=email).first():
             flash('Email is already registered.')
             return redirect(url_for('register'))
 
-        # Increment the role_id
-        max_role_id = db.session.query(db.func.max(User.role_id)).scalar() or 0
-        new_role_id = max_role_id + 1
+        new_id = get_lowest_available_id()
 
         # Create a new user
         new_user = User(
+            id=new_id,
             name=name,
             email=email,
             contact_number=contact_number,
-            role=role,
-            role_id=new_role_id,
-            profile_picture=profile_picture,
+            role='Customer',
+            profile_picture=filename,
         )
+
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
@@ -304,7 +556,8 @@ def create_rewards():
         name = request.form['name']
         points_required = request.form['points_required']
         description = request.form['description']
-        new_reward = Reward(name=name, points_required=points_required, description=description)
+        discount_value = 0
+        new_reward = Reward(name=name, points_required=points_required, description=description,discount_value = discount_value)
         db.session.add(new_reward)
         db.session.commit()
         flash("Reward created successfully!", "success")
@@ -340,15 +593,46 @@ user_points = 8888
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     global user_points
     message = None
+
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
         reward = Reward.query.get(reward_id)
 
         if reward and user_points >= reward.points_required:
-            user_points -= reward.points_required
-            message = f"Successfully redeemed {reward.name}!"
+            user_points -= reward.points_required  # Deduct points
+
+            # ✅ Correctly determine discount value
+            discount_value = 0
+            if "Free Shipping" in reward.name:
+                discount_value = 13.50  # Free shipping discount
+            elif "20% Discount" in reward.name:
+                discount_value = -1  # Placeholder for percentage-based discount (to be applied at checkout)
+            else:
+                discount_value = float(reward.name.replace("$", "").split(" ")[0])  # Extract value from reward name
+
+            # ✅ Store redeemed reward in `redeemed_rewards.db` with correct discount
+            redeemed_reward = RedeemedReward(
+                user_id=session['user_id'],
+                reward_name=reward.name,
+                points_used=reward.points_required,
+                discount_value=discount_value,  # Store actual discount
+                status="Unused"
+            )
+            db.session.add(redeemed_reward)
+            db.session.commit()
+
+            message = f"Successfully redeemed {reward.name}! Please apply this discount at checkout."
         else:
             message = "You don't have enough points to redeem this reward."
 
@@ -358,7 +642,9 @@ def rewards_page():
         'rewards.html',
         rewards=rewards,
         user_points=user_points,
-        message=message
+        message=message,
+        profile_picture=profile_picture,
+        userid= user_id
     )
 
 
@@ -462,50 +748,35 @@ def add_new_item():
     return render_template('add_item.html')
 
 
-@app.route("/inventory/delete/<int:item_id>", methods=["POST"])
-def delete_inventory_item(item_id):
-    # Fetch the item from the database
-    item = InventoryItem.query.get_or_404(item_id)
-
-    # Delete the item
-    db.session.delete(item)
-    db.session.commit()
-
-    # Flash a success message
-    flash(f"Item '{item.name}' has been deleted successfully!")
-    return redirect(url_for("inventory_page"))
-
-
-@app.route("/order_summary_staff/<int:order_id>", methods=["GET"])
-def order_summary_staff(order_id):
-    order = Order.query.get_or_404(order_id)
-
-    items = [
-        {
-            "id": item.id,
-            "name": item.get_inventory_item().name if item.get_inventory_item() else "Unknown Item",
-            "quantity": item.quantity,
-            "cost_per_item": item.cost_per_item,
-            "total_cost": item.total_cost,
-        }
-        for item in order.order_items
-    ]
-
-    return render_template("staff_order_summary.html", order=order, items=items)
-
-@app.route("/shopping", methods=["GET", "POST"])
+@app.route("/shopping", methods=["GET"])
 def shopping_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    # Redirect staff users to staff dashboard
+    if 'role' in session and session['role'] == 'staff':
+        flash("Staff members cannot access the shopping page.", "warning")
+        return redirect(url_for("staff_dashboard"))
+
     # Retrieve query parameters
-    category = request.args.get("category", "all")  # Default to "all"
+    category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     sort_option = request.args.get("sort", "")
-    query = InventoryItem.query
 
-    # Filter by search query
+    # Query for inventory items while filtering out out-of-stock items
+    query = InventoryItem.query.filter(InventoryItem.stock > 0)  # Exclude items with 0 stock
+
+    # Apply search filter
     if search_query:
         query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
 
-    # Filter by category (exclude "all" to fetch everything)
+    # Apply category filter
     if category and category != "all":
         query = query.filter_by(category=category)
 
@@ -517,31 +788,22 @@ def shopping_page():
     elif sort_option == "high-low":
         query = query.order_by(InventoryItem.price.desc())
 
-    # Fetch items from the database
+    # Fetch available items (only those with stock > 0)
     items = query.all()
 
-    # Retrieve cart from session
+    # Retrieve cart details
     cart = session.get("cart", [])
-    cart_count = session.get("cart_count", 0)  # Retrieve cart count
+    cart_count = sum(item["quantity"] for item in cart)
+    total_price = sum(item["price"] * item["quantity"] for item in cart)
 
-    # Precompute max stock for each cart item
-    for cart_item in cart:
-        item = InventoryItem.query.get(cart_item["item_id"])
-        if item:
-            cart_item["max_quantity"] = item.stock + cart_item["quantity"]  # Available stock + currently in cart
-        else:
-            cart_item["max_quantity"] = cart_item["quantity"]  # Fallback to the current quantity
-
-    # Calculate total price
-    total_price = sum(item['price'] * item['quantity'] for item in cart)
-
-    # Render the shopping page
     return render_template(
         "shopping_page.html",
-        items=items,
+        items=items,  # Only in-stock items are displayed
         cart=cart,
+        cart_count=cart_count,
         total_price=total_price,
-        cart_count=cart_count
+        profile_picture=profile_picture,
+        userid=user_id
     )
 
 @app.route("/add_to_cart", methods=["POST"])
@@ -659,22 +921,52 @@ def validate_expiry_date(expiry_date):
         return expiry_date > current_date
     except (ValueError, IndexError):
         return False
+
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    # Check if the user is logged in and is a customer
     if 'role' not in session or session['role'] != 'customer':
-        flash("You are not authorized to access this page.", "danger")
-        return redirect(url_for('staff_dashboard'))  # Redirect staff to their dashboard (or another appropriate page)
+        flash("Please create an account.", "danger")
+        return redirect(url_for('staff_dashboard'))
 
+    user_id = session['user_id']
     cart = session.get('cart', [])
-    if not cart:
-        flash("Your cart is empty. Add items before proceeding to checkout.", "danger")
-        return redirect(url_for('shopping_page'))  # Redirect to shopping page if cart is empty
 
-    errors = {}  # Initialize an empty errors dictionary
+    if not cart:
+        flash("Your cart is empty. Add items before proceeding to checkout.")
+        return redirect(url_for('shopping_page'))
+
+    total_cost = sum(item['price'] * item['quantity'] for item in cart)
+    shipping_cost = 13.50
+    final_total = total_cost + shipping_cost  # Initial total
+
+    # ✅ Fetch all unused rewards for the dropdown
+    unused_rewards = RedeemedReward.query.filter_by(user_id=user_id, status="Unused").all()
+
+    # ✅ Get selected reward
+    selected_reward_id = request.form.get('reward_id', session.get('applied_reward'))
+    selected_reward = None
+    discount_amount = 0
+
+    if selected_reward_id:
+        selected_reward = RedeemedReward.query.get(int(selected_reward_id))
+        if selected_reward and selected_reward.user_id == user_id and selected_reward.status == "Unused":
+            if selected_reward.discount_value == -1:
+                discount_amount = total_cost * 0.2
+            else:
+                discount_amount = selected_reward.discount_value
+
+            final_total = max(final_total - discount_amount, 0)  # Ensure total isn't negative
+            session['applied_reward'] = selected_reward.id
+            session['applied_discount'] = discount_amount  # Store correct discount value
+        else:
+            session.pop('applied_reward', None)
+            session.pop('applied_discount', None)
+
+
+    errors = {}
 
     if request.method == 'POST':
-        # Retrieve form data
         card_number = request.form.get('card_number', '')
         expiry_date = request.form.get('expiry_date', '')
         cvc = request.form.get('cvc', '')
@@ -684,82 +976,69 @@ def checkout():
         location = request.form.get('location', '')
         comment = request.form.get('comment', '')
 
-        # Validation
-        if not card_number or len(card_number) != 16 or not card_number.isdigit():
+        if not card_number.isdigit() or len(card_number) != 16:
             errors['card_number'] = "Card number must be 16 digits."
         if not expiry_date or not validate_expiry_date(expiry_date):
-            errors['expiry_date'] = "Invalid expiry date. Use MM/YY format and ensure it is in the future."
-        if not cvc or len(cvc) != 3 or not cvc.isdigit():
+            errors['expiry_date'] = "Invalid expiry date."
+        if not cvc.isdigit() or len(cvc) != 3:
             errors['cvc'] = "CVC must be 3 digits."
-        if not name.isalpha():
+        if not name.replace(" ", "").isalpha():
             errors['name'] = "Name must contain only letters."
         if not date or not time or not location:
             errors['order'] = "Order date, time, and location are required."
 
-        # If there are errors, render the template with the errors
         if errors:
-            total_cost = sum(item['price'] * item['quantity'] for item in cart)
-            return render_template(
-                'checkout.html',
-                errors=errors,
-                card_number=card_number,
-                expiry_date=expiry_date,
-                cvc=cvc,
-                name=name,
-                date=date,
-                time=time,
-                location=location,
-                comment=comment,
-                items=cart,
-                total_cost=total_cost
-            )
+            return render_template('checkout.html', errors=errors,
+                                   card_number=card_number, expiry_date=expiry_date, cvc=cvc,
+                                   name=name, date=date, time=time, location=location, comment=comment,
+                                   items=cart, total_cost=total_cost, shipping_cost=shipping_cost,
+                                   final_total=final_total, unused_rewards=unused_rewards,
+                                   selected_reward_id=selected_reward_id, selected_reward=selected_reward)
 
-        # Fetch the logged-in user's details from the session
-        user = User.query.get(session['user_id'])  # Retrieve the user from the database
+        user = User.query.get(user_id)
         if not user:
             flash("User not found. Please log in again.", "danger")
-            return redirect(url_for('login'))  # If no user is found, redirect to login
+            return redirect(url_for('login'))
 
-        # Process Order and Save to Database
+        # ✅ Store final order details
         order = Order(
-            customer_name=user.name,  # Use the logged-in user's name
-            customer_email=user.email,  # Use the logged-in user's email
-            customer_contact=user.contact_number,  # Use the logged-in user's contact number
+            customer_name=user.name,
+            customer_email=user.email,
+            customer_contact=user.contact_number,
             date=date,
             time=time,
             location=location,
-            comments=comment
+            comments=comment,
+            total=final_total,
+            discount_applied = discount_amount, # Store discount amount
+            shipping_cost = shipping_cost  # Store shipping cost
+
         )
         db.session.add(order)
         db.session.commit()
 
-        # Save items to the order and update inventory stock
+        # ✅ Deduct stock for purchased items
         for cart_item in cart:
-            order_item = OrderItem(
-                order_id=order.id,
-                inventory_item_id=cart_item['item_id'],
-                quantity=cart_item['quantity'],
-                price=cart_item['price']
-            )
-            db.session.add(order_item)
-
-            # Update inventory stock
+            db.session.add(OrderItem(order_id=order.id, inventory_item_id=cart_item['item_id'],
+                                     quantity=cart_item['quantity'], price=cart_item['price']))
             inventory_item = InventoryItem.query.get(cart_item['item_id'])
             if inventory_item:
-                inventory_item.stock -= cart_item['quantity']
-                if inventory_item.stock < 0:
-                    inventory_item.stock = 0  # Ensure stock does not go below 0
+                inventory_item.stock = max(inventory_item.stock - cart_item['quantity'], 0)
+
+        # ✅ Mark reward as used
+        if selected_reward:
+            selected_reward.status = "Used"
+            db.session.commit()
 
         db.session.commit()
-
-        # Clear the cart
         session.pop('cart', None)
         flash("Checkout successful!", "success")
         return redirect(url_for('order_summary', order_id=order.id))
 
-    # Handle GET request
-    total_cost = sum(item['price'] * item['quantity'] for item in cart)
-    return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
+    return render_template('checkout.html', items=cart, total_cost=total_cost,
+                           shipping_cost=shipping_cost, final_total=final_total,
+                           unused_rewards=unused_rewards, selected_reward_id=selected_reward_id,
+                           selected_reward=selected_reward)
 
 def get_order_details(order_id):
     """
@@ -862,29 +1141,55 @@ def edit_order_item(order_id):
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
-        orders = Order.query.all()
-        notifications = 1
+        accepted_orders = Order.query.filter(Order.status == "Accepted").all()
+        pending_orders_count = Order.query.filter(Order.status == "Pending").count()
+
+        notifications = pending_orders_count
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", user=session['user_id'])
+        userid = session['user_id']
+        user = User.query.get_or_404(userid)
+        filename = user.profile_picture
+
+        return render_template(
+            'staff_dashboard.html',
+            accepted_orders=accepted_orders,
+            pending_orders_count=pending_orders_count,
+            notifications=notifications,
+            event_revenue=event_revenue,
+            low_stock_items=low_stock_items,
+            userid=session['user_id'],
+            profile_picture=filename
+        )
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
 
+
 @app.route('/customer_account')
 def customer_account():
-    if 'role' in session and session['role'] == 'customer':
-        print(f"Session valid: {session}")  # Debug
-        orders = Order.query.filter_by(customer_email=session.get('email')).all()
-        notifications = 1  # Example
-        user_points = 8888  # Example
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points)
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+
+        # ✅ Fetch only pending orders for this customer
+        pending_orders = Order.query.filter_by(customer_email=user.email).all()
+
+        # ✅ Fetch only unused rewards
+        redeemed_rewards = RedeemedReward.query.filter_by(user_id=user_id, status="Unused").all()
+
+        return render_template(
+            'customer_account.html',
+            profile_picture=user.profile_picture,
+            name=user.name,
+            user_points=user_points,
+            redeemed_rewards=redeemed_rewards,  # ✅ Pass unused rewards
+            pending_orders=pending_orders  # ✅ Pass only pending orders
+        )
     else:
-        print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
         return redirect(url_for('login'))
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -892,8 +1197,10 @@ def login():
     if 'role' in session:
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
-        elif session['role'] == 'customer':
+        elif session['role'] == 'Customer':
             return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+        elif session['role'] == 'admin':
+            return redirect(url_for('admin'))
 
     if request.method == 'POST':
         email = request.form.get('email')
@@ -909,8 +1216,10 @@ def login():
             # Redirect based on role
             if user.role == 'staff':
                 return redirect(url_for('staff_dashboard'))
-            elif user.role == 'customer':
+            elif user.role == 'Customer':
                 return redirect(url_for('customer_account'))
+            elif user.role == 'admin':
+                return redirect(url_for('admin'))
         else:
             session.clear()
             flash('Invalid email or password. Please try again.', 'danger')
@@ -941,7 +1250,15 @@ def is_valid_email(email):
 
 @app.route('/contact_us')
 def contact_us_page():
-    return render_template('contact_us.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('contact_us.html', profile_picture=profile_picture, userid= user_id)
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
@@ -959,44 +1276,95 @@ def submit_contact_us():
     elif not message or len(message) < 10:
         flash('Message must be at least 10 characters long.', 'danger')
     else:
+        # Save feedback to the database
+        feedback = Feedback(
+            feedback_type=feedback_type,
+            full_name=full_name,
+            email=email,
+            message=message,
+            replied=False
+        )
+        db.session.add(feedback)
+        db.session.commit()
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
     return redirect('/contact_us')
 
+# Route to view feedback and replies
+@app.route('/contact_us_data')
+def contact_us_data():
+    feedback_list = Feedback.query.all()
+    reply_list = Reply.query.all()
+    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list)
+
+# Route to reply to feedback
+@app.route('/reply_to_feedback', methods=['POST'])
+def reply_to_feedback():
+    email = request.form.get('email')
+    reply_message = request.form.get('reply_message')
+
+    # Update the feedback to mark it as replied
+    feedback = Feedback.query.filter_by(email=email, replied=False).first()
+    if feedback:
+        feedback.replied = True
+        db.session.add(feedback)
+        db.session.commit()
+
+        # Save the reply to the database
+        reply = Reply(email=email, reply_message=reply_message)
+        db.session.add(reply)
+        db.session.commit()
+        flash('Reply sent successfully!', 'success')
+
+    return redirect('/contact_us_data')
+
 @app.route('/points_system')
 def points_system():
-    # Initialize session variables if not set
-    if 'points' not in session:
-        session['points'] = 0
-    if 'last_login' not in session:
-        session['last_login'] = None
-    if 'streak' not in session:
-        session['streak'] = 0
+    # Ensure user is logged in
+    if 'user_id' not in session:
+        flash("Please log in to access this page.", "danger")
+        return redirect(url_for('login'))
 
-    # Check if the user logs in on a new day
-    today = datetime.now().date()
-    last_login = session['last_login']
+    # Fetch the user from the database
+    user = User.query.get(session['user_id'])
 
-    if last_login is None or last_login != str(today):
-        session['last_login'] = str(today)
-        session['streak'] += 1
-        session['points'] += 2  # Add points for daily login
+    # Ensure user exists and is a customer
+    if not user or user.role.lower() != "customer":
+        flash("Only customers can access this page.", "danger")
+        return redirect(url_for('customer_account' if user.role == "customer" else 'staff_dashboard'))
 
-    return render_template('points_system.html', points=session['points'], streak=session['streak'])
+    return render_template('points_system.html', points=user.points, streak=user.streak)
 
 @app.route('/spin', methods=['POST'])
 def spin():
-    import random
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
 
-    # Spin the wheel and get random points
-    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role != 'Customer':  # ✅ Only customers can spin the wheel
+        return jsonify({'error': 'Only Customers can spin the wheel'}), 403
+
+    today = datetime.utcnow().date()
+
+    # Prevent spinning more than once per day
+    if session.get('spun_today') == today.isoformat():
+        return jsonify({'error': 'You already spun the wheel today', 'points': user.points})
+
+    outcomes = [2, 3, 5, 10, 0]  # Possible point rewards
     result = random.choice(outcomes)
 
-    # Update points in session
-    session['points'] += result
+    user.points += result
+    session['spun_today'] = today.isoformat()  # ✅ Track spin without modifying streak
+    db.session.commit()
 
-    return {'result': result, 'points': session['points']}
+    return jsonify({
+        'message': f'You won {result} points!',
+        'result': result,
+        'points': user.points
+    })
 
 
 @app.route('/download_receipt/<int:order_id>')
@@ -1036,8 +1404,16 @@ def generate_receipt(order_id):
         else:
             receipt_content += f"Unknown Item - {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}\n"
 
-    # Add the total price at the end of the receipt
-    receipt_content += f"\nTotal Cost: ${total_price:.2f}"
+    # Add Shipping Cost
+    receipt_content += f"\nShipping Cost: ${order.shipping_cost:.2f}\n"
+
+    # Add Discount Applied
+    discount_applied = order.discount_applied if order.discount_applied else 0
+    receipt_content += f"Discount Applied: -${discount_applied:.2f}\n"
+
+    # Calculate Final Total
+    final_total = total_price + order.shipping_cost - discount_applied
+    receipt_content += f"\nFinal Total (After Shipping & Discount): ${final_total:.2f}"
 
     # Save the receipt content to a text file
     receipt_file = f"receipt_{order_id}.txt"
@@ -1045,6 +1421,7 @@ def generate_receipt(order_id):
         f.write(receipt_content)
 
     return receipt_file
+
 @app.route('/notifications', methods=['GET', 'POST'])
 def notifications():
     # Check if the user is logged in and has a 'staff' role
@@ -1102,6 +1479,94 @@ def view_order_details(order_id):
         })
 
     return render_template('order_details.html', order=order, items=items_with_inventory, total_price=total_price)
+@app.route('/use_reward/<int:reward_id>', methods=['POST'])
+def use_reward(reward_id):
+    if 'user_id' not in session:
+        flash("Please log in to use a reward.", "danger")
+        return redirect(url_for('login'))
+
+    reward = RedeemedReward.query.filter_by(id=reward_id, user_id=session['user_id'], status="Unused").first()
+
+    if not reward:
+        flash("Invalid or already used reward.", "danger")
+        return redirect(url_for('customer_account'))
+
+    # ✅ Store the correct discount amount in session
+    session['applied_reward'] = reward.id
+
+    if "20% Discount" in reward.reward_name:
+        session['applied_discount'] = -1  # Placeholder (this will be calculated dynamically in checkout)
+    else:
+        session['applied_discount'] = reward.discount_value  # ✅ Use `discount_value`, not `points_used`
+
+    flash(f"{reward.reward_name} applied! Discount of ${session['applied_discount']} will be deducted at checkout.", "success")
+    return redirect(url_for('checkout'))
+
+
+@app.route('/collect_points', methods=['POST'])
+def collect_points():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role != 'Customer':
+        return jsonify({'error': 'Only Customers can collect points'}), 403
+
+    today = date.today()
+
+    # ✅ Only update streak when user actually clicks "Collect Points"
+    if user.last_login == today:
+        return jsonify({'error': 'You already collected points today', 'points': user.points})
+
+    # **Fix Streak Calculation**
+    if user.last_login is None or (today - user.last_login).days > 1:
+        user.streak = 1  # Reset streak if missed a day
+    else:
+        user.streak += 1  # Continue streak
+
+    # ✅ Correct Points Calculation
+    earned_points = min(user.streak * 10, 100)  # Max cap of 100 points
+    user.points += earned_points
+    user.last_login = today
+
+    # ✅ Store streak history correctly
+    streak_data = json.loads(user.streak_data or "{}")
+    weekday = today.strftime("%A")
+    streak_data[weekday] = today.isoformat()  # Store as date
+    user.streak_data = json.dumps(streak_data)  # ✅ Save streak data
+
+    db.session.commit()
+
+    return jsonify({
+        'message': f'Collected {earned_points} points!',
+        'points': user.points,
+        'streak': user.streak,
+        'streakData': streak_data  # ✅ Send updated streak data
+    })
+
+@app.route('/get_user_data', methods=['GET'])
+def get_user_data():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
+
+    user = db.session.get(User, session['user_id'])  # ✅ Use `db.session.get()`
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # ✅ Convert streakData from JSON safely
+    try:
+        streak_data = json.loads(user.streak_data) if user.streak_data else {}
+    except json.JSONDecodeError:
+        streak_data = {}
+
+    return jsonify({
+        'points': user.points,
+        'streak': user.streak,
+        'streakData': streak_data  # ✅ Ensure streakData is always returned correctly
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True)

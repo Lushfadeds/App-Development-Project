@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "staff_base.html" %}
 {% block content %}
 <link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
 
@@ -6,15 +6,13 @@
 
   <div class="row">
 
-    {% include "includes/staff_navbar.html" %}
-
     <div class="col-9 mx-auto">
 
       <div class="row">
         <div class="col-9 d-flex">
-            <img src="static/pfp/lawyer.png" class="pfp rounded-circle m-5 img-fluid" alt="Profile">
+            <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid w-30" alt="Profile">
             <div class="my-auto">
-                <h1>Welcome, User!</h1>
+                <h1>Welcome, {{ session['role'].capitalize() }}!</h1>
                 <p class="lead">Organise your business and improve your performance here!</p>
             </div>
         </div>
@@ -40,7 +38,7 @@
             <div class="card-body d-flex justify-content-between p-0">
               <div>
                 <h5 class="card-title fw-bold pt-3 px-3">Updates</h5>
-                <p class="card-text px-3">You currently have 18 items low on stock</p>
+                <p class="card-text px-3">You currently have <strong>{{ low_stock_items }}</strong> items low on stock</p>
               </div>
               <a href="#" class="rounded">
                 <i class="fa-solid fa-chevron-right my-auto p-5 rounded"></i>
@@ -50,6 +48,7 @@
         </div>
       </div>
 
+      <!-- Notification Section -->
       <div class="row mb-5">
         <div class="col-12">
           <div class="card h-100">
@@ -62,56 +61,37 @@
         </div>
       </div>
 
+      <!-- Orders Table -->
+      <div class="orders mb-5">
+        <h3>View Accepted Orders</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Location</th>
+                    <th>Total Cost</th>  <!-- Added column -->
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if accepted_orders %}
+                    {% for order in accepted_orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>{{ order.location }}</td>
+                        <td>${{ "%.2f"|format(order.total) }}</td>  <!-- Displaying total cost -->
+                        <td><a href="{{ url_for('staff_order_summary', order_id=order.id) }}" class="btn btn-primary">Find out more</a></td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">No accepted orders yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
-
-<!--
-<div class="dashboard-container">
-    <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
-    <p>Organize your business and improve your performance here!</p>
-
-    <div class="logout-section">
-        <form method="POST" action="{{ url_for('logout') }}">
-            <button type="submit" class="logout-btn">Logout</button>
-        </form>
-    </div>
-
-    <div class="stats-section">
-        <div class="stat-card">
-            <h3>Event Revenue</h3>
-            <p>${{ event_revenue }}</p>
-        </div>
-        <div class="stat-card">
-            <h3>Updates</h3>
-            <p>You currently have {{ low_stock_items }} items low on stock</p>
-        </div>
-    </div>
-    
-    <div class="notifications">
-        <h3>You currently have: {{ notifications }} Notification(s)</h3>
-        <button>View Notifications</button>
-    </div>
-    
-    <div class="orders">
-        <h3>View Current Orders</h3>
-        <table>
-            <tr>
-                <th>Order ID</th>
-                <th>Location</th>
-                <th>Cost</th>
-                <th>Action</th>
-            </tr>
-            {% for order in orders %}
-            <tr>
-                <td>{{ order.id }}</td>
-                <td>{{ order.location }}</td>
-                <td>${{ order.total }}</td>
-                <td><a href="{{ url_for('staff_order_summary', order_id=order.id) }}">Find out more</a></td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-</div>
--->
 {% endblock %}

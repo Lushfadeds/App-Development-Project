@@ -1,45 +1,120 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="account-container">
-    <h2>Welcome, {{ session['role'].capitalize() }}!</h2>
-     <!-- Logout Button -->
-    <div class="logout-section">
-        <form method="POST" action="{{ url_for('logout') }}">
-            <button type="submit" class="logout-btn">Logout</button>
-        </form>
-    </div>
-    
-    <div class="stats-section">
-        <div class="stat-card">
-            <h3>You currently have:</h3>
-            <p>{{ user_points }} points</p>
-            <button>Redeem Rewards</button>
+<link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
+
+<div class="container-fluid px-0 my-5">
+  <div class="row">
+    <div class="col-11 mx-auto">
+      <div class="row mb-2">
+        <div class="col-9 d-flex">
+            <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid" alt="Profile">
+            <div class="my-auto">
+                <h1>Welcome, {{ name }}!</h1>
+                <p class="lead">Checkout your orders and earn rewards!</p>
+            </div>
         </div>
-        <div class="stat-card">
-            <h3>You currently have:</h3>
-            <p>{{ notifications }} Notification(s)</p>
-            <button>View Notifications</button>
+      </div>
+
+      <div class="row mb-5">
+        <div class="col-6">
+          <div class="card h-100">
+            <div class="card-body p-0">
+                <h5 class="card-title fw-bold pt-3 px-3">You currently have:</h5>
+                <p class="revenue card-text px-3">{{ user_points }} points</p>
+                <div class="d-flex justify-content-center">
+                    <a href="{{ url_for('rewards_page') }}" class="btn btn-primary w-75 fs-5 fw-bold p-2 mt-2 mb-4">Redeem Rewards</a>
+                </div>
+            </div>
+          </div>
         </div>
-    </div>
-    
-    <div class="orders">
-        <h3>View Current Orders</h3>
-        <table>
-            <tr>
+
+        <div class="col-6">
+          <div class="card h-100">
+            <div class="card-body p-0">
+                <h5 class="card-title fw-bold pt-3 px-3">You currently have:</h5>
+                <p class="revenue card-text px-3">{{ notifications }} Notification(s)</p>
+                <div class="d-flex justify-content-center">
+                    <a href="{{ url_for('notifications') }}" class="btn btn-primary w-75 fs-5 fw-bold p-2 mt-2 mb-4">View Notifications</a>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ Redeemed Unused Rewards Section -->
+        <div class="mt-5">
+          <h2>Redeemed Unused Rewards (Apply at Checkout) </h2>
+          {% set unused_rewards = redeemed_rewards | selectattr("status", "equalto", "Unused") | list %}
+          {% if unused_rewards %}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Reward Name</th>
+                <th>Points Used</th>
+                <th>Date Redeemed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for reward in unused_rewards %}
+              <tr>
+                <td>{{ reward.reward_name }}</td>
+                <td>{{ reward.points_used }}</td>
+                <td>{{ reward.redeemed_at.strftime('%Y-%m-%d') }}</td> <!-- Format date as YYYY-MM-DD -->
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p>No unused rewards redeemed yet.</p>
+          {% endif %}
+        </div>
+        <!-- ✅ End of Redeemed Unused Rewards Section -->
+
+        <!-- ✅ Pending Orders Section (View-Only for Customers) -->
+        <div class="orders mt-5">
+          <h2>Your Pending Orders</h2>
+          {% if pending_orders %}
+          <table class="table">
+            <thead>
+              <tr>
                 <th>Order ID</th>
                 <th>Location</th>
                 <th>Cost</th>
+                <th>Date Ordered</th>
+                <th>Status</th>
                 <th>Action</th>
-            </tr>
-            {% for order in orders %}
-            <tr>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in pending_orders %}
+              <tr>
                 <td>{{ order.id }}</td>
                 <td>{{ order.location }}</td>
                 <td>${{ order.total }}</td>
-                <td><a href="{{ url_for('order_summary', order_id=order.id) }}">Findut more</a></td>
-            </tr>
-            {% endfor %}
-        </table>
+                <td>{{ order.date }}</td>
+                <td>
+                  <span class="badge {% if order.status == 'Pending' %} bg-warning text-dark {% elif order.status == 'Accepted' %} bg-success text-white {% else %} bg-secondary {% endif %} fs-6 p-2">
+                    {{ order.status }}
+                  </span>
+                </td>
+               <td >
+    <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-primary fs-6 fw-bold py-1 px-3">
+        View Order
+    </a>
+</td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p>You have no pending orders at the moment.</p>
+          {% endif %}
+        </div>
+        <!-- ✅ End of Pending Orders Section -->
+
+      </div>
     </div>
+  </div>
 </div>
+
 {% endblock %}
