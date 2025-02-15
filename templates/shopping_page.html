@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <link href="{{ url_for('static', filename='shopping.css') }}" rel="stylesheet">
+
 <div class="flashes">
     {% for category, message in messages %}
     <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
@@ -10,9 +11,7 @@
     {% endfor %}
 </div>
 
-<div class="shopping-page">
-    <!-- Sidebar -->
-    <div class="container-fluid shopping-page">
+<div class="container-fluid shopping-page">
     <div class="row">
         <!-- Sidebar -->
         <aside class="col-md-3 sidebar">
@@ -50,39 +49,41 @@
 
         <!-- Main Content -->
         <section class="col-md-9">
-            <div class="inventory-grid">
+            <div class="row">
                 {% if not items %}
-                <p>No items found for the selected category or filter.</p>
+                    <p>No items found for the selected category or filter.</p>
                 {% else %}
-                {% for item in items %}
-                <div class="inventory-item">
-                    <div class="item-card">
-                        <img src="{{ url_for('static', filename=item.image_url) }}" class="item-image" alt="{{ item.name }}">
-                        <div class="card-body text-center">
-                            <h5 class="card-title">{{ item.name }}</h5>
-                            <p class="price">Price: ${{ "%.2f"|format(item.price) }}</p>
-                            <p class="stock">Stock: {{ item.stock }}</p>
-                            <form method="POST" action="/add_to_cart">
-                                <input type="hidden" name="item_id" value="{{ item.id }}">
-                                <div class="quantity">
-                                    <input type="number" name="quantity" value="1" min="1" max="{{ item.stock }}" class="quantity-input">
-                                </div>
-                                <button type="submit" class="btn btn-success">Add to Cart</button>
-                            </form>
+                    {% for item in items %}
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                        <div class="card text-center {% if item.stock < 10 %}low-stock{% endif %}">
+                            <div class="image-container">
+                                <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.name }}" class="item-image">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.name }}</h5>
+                                <p>Stock QTY: {{ item.stock }}</p>
+                                <p class="price">Price: ${{ "%.2f"|format(item.price) }}</p>
+
+                                <!-- Add to Cart Form -->
+                                <form method="POST" action="/add_to_cart">
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <div class="quantity">
+                                        <input type="number" name="quantity" value="1" min="1" max="{{ item.stock }}" class="form-control form-control-sm w-50 mx-auto mb-2">
+                                    </div>
+                                    <button type="submit" class="btn btn-success">Add to Cart</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
+                    {% endfor %}
                 {% endif %}
             </div>
         </section>
     </div>
 </div>
 
-    </section>
-</div>
-
-        <aside class="col-md-3 cart-sidebar">
+<!-- Shopping Cart -->
+<aside class="col-md-3 cart-sidebar">
     <h5>Shopping Cart</h5>
     <div class="cart-items">
         {% if cart %}
@@ -91,12 +92,9 @@
                 <h6>{{ cart_item['name'] }}</h6>
                 <p>Price: ${{ "%.2f"|format(cart_item['price'] * cart_item['quantity']) }}</p>
 
-                <!-- Form for quantity update and remove buttons -->
                 <div class="d-flex align-items-center">
                     <form method="POST" action="/update_cart" class="d-flex align-items-center">
                         <input type="hidden" name="item_id" value="{{ cart_item['item_id'] }}">
-
-                        <!-- Quantity Input -->
                         <input type="number"
                                name="quantity"
                                value="{{ cart_item['quantity'] }}"
@@ -104,12 +102,8 @@
                                max="{{ cart_item['max_quantity'] }}"
                                class="form-control form-control-sm me-2 quantity-input"
                                style="width: 60px;">
-
-                        <!-- Update Button -->
                         <button type="submit" class="btn btn-primary btn-sm update-btn" disabled>Update</button>
                     </form>
-
-                    <!-- Remove Button -->
                     <form method="POST" action="/remove_from_cart" style="margin-left: 10px;">
                         <input type="hidden" name="item_id" value="{{ cart_item['item_id'] }}">
                         <button type="submit" class="btn btn-danger btn-sm">Remove</button>
@@ -123,29 +117,21 @@
     </div>
     <hr>
     <h6>Total: ${{ "%.2f"|format(total_price) }}</h6>
-<form action="/checkout" method="POST">
-    <button type="submit" class="btn btn-primary btn-block">Proceed to Checkout</button>
-</form>
+    <form action="/checkout" method="POST">
+        <button type="submit" class="btn btn-primary btn-block">Proceed to Checkout</button>
+    </form>
 </aside>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Loop through all quantity input fields
         document.querySelectorAll('.quantity-input').forEach(input => {
             const updateButton = input.closest('form').querySelector('.update-btn');
             const originalValue = input.value;
-
-            // Event listener for input changes
             input.addEventListener('input', function () {
-                if (this.value !== originalValue) {
-                    updateButton.disabled = false;
-                } else {
-                    updateButton.disabled = true;
-                }
+                updateButton.disabled = (this.value === originalValue);
             });
         });
     });
 </script>
-
 
 {% endblock %}

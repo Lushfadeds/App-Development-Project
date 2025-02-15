@@ -1,0 +1,57 @@
+.con-ctm {
+    height: 100vh;
+}
+
+.fa-solid {
+    font-size: 0.95rem;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.fa-pen {
+    color: #007bff;
+}
+
+
+.fa-trash {
+    color: #dc3545;
+}
+
+
+img {
+    height: 3.4em;
+    width: 3.4rem;
+    object-fit: cover;
+    border-radius: 500px;
+    margin-right: 20px;
+}
+
+table {
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;
+}
+
+.action-btn{
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    height: 2.3rem;
+    width: 2.3rem;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    margin-right: 15px;
+    cursor: pointer;
+    outline: 0;
+    border: none;
+    box-shadow: none;
+}
+
+.form-check {
+    margin-right: 10px;
+}

@@ -34,7 +34,8 @@ app.config['SQLALCHEMY_BINDS'] = {
     'user': 'sqlite:///user.db',
     'rewards': 'sqlite:///rewards.db',
     'feedback': 'sqlite:///feedback.db',
-    'replies': 'sqlite:///replies.db'
+    'replies': 'sqlite:///replies.db',
+    'redeemed_rewards': 'sqlite:///redeemed_rewards.db'
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -64,8 +65,11 @@ class Reward(db.Model):
     name = db.Column(db.String(100), nullable=False)
     points_required = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200), nullable=True)
+    discount_value = db.Column(db.Float, nullable=False)  # New field to store actual discount
+
     # the Reward class defines a db model for the rewards table, for a unique id
     # , a required name, the points_required to claim the reward, and an optional description.
+
 
 
 class Stats(db.Model):
@@ -78,6 +82,10 @@ class Stats(db.Model):
     daily_unique_customers = db.Column(db.Integer, nullable=False)
     money_spent_customer = db.Column(db.Integer, nullable=False)
 
+
+with app.app_context():
+    if not os.path.exists('rewards.db'):
+        db.create_all()
 
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
@@ -128,10 +136,14 @@ class Order(db.Model):
     location = db.Column(db.String(200), nullable=False)
     comments = db.Column(db.Text, nullable=True)
     total = db.Column(db.Float, nullable=True)
+    discount_applied = db.Column(db.Float, nullable=True, default=0.00)  # New field for discount
+    shipping_cost = db.Column(db.Float, nullable=True, default=13.50)  # New field for shipping
     shop_name = db.Column(db.String(100), nullable=True)
     shop_email = db.Column(db.String(100), nullable=True)
     shop_contact = db.Column(db.String(15), nullable=True)
     status = db.Column(db.String(20), default="Pending")
+
+
 
 
 class OrderItem(db.Model):
@@ -147,8 +159,20 @@ class OrderItem(db.Model):
     order = db.relationship('Order', backref='order_items')
 
 
+
+class RedeemedReward(db.Model):
+    __bind_key__ = 'redeemed_rewards'  #  Ensure correct DB binding
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)  # Store user ID
+    reward_name = db.Column(db.String(100), nullable=False)
+    points_used = db.Column(db.Integer, nullable=False, default=0)  # ✅ Add points_used column
+    discount_value = db.Column(db.Float, nullable=False, default=0.0)
+    redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(10), default="Unused")  # New field to track usage
+
 # Create the database table
 with app.app_context():
+
     db.create_all()
 
     if not User.query.filter_by(role='admin').first():
@@ -156,9 +180,9 @@ with app.app_context():
             id=1,
             name='admin',
             email='admin@mamaks.com',
-            contact_number='',
+            contact_number='11111111',
             role='admin',
-            profile_picture='',
+            profile_picture='unknown.png',
         )
         admin_user.set_password('admin123')
         db.session.add(admin_user)
@@ -167,7 +191,32 @@ with app.app_context():
     else:
         print('Existing Admin Found')
 
+    if not Reward.query.first():
+        default_rewards = [
+            {"name": "Free Shipping", "points_required": 1350, "description": "Get free shipping on your order.",
+             "discount_value": 13.50},
+            {"name": "$5 Voucher", "points_required": 500, "description": "Redeem a $5 shopping voucher.",
+             "discount_value": 5.00},
+            {"name": "20% Discount", "points_required": 2000, "description": "Get 20% off your next order.",
+             "discount_value": -1},  # -1 to dynamically calculate 20% later
+            {"name": "$20 Voucher", "points_required": 2000, "description": "Redeem a $20 shopping voucher.",
+             "discount_value": 20.00},
+            {"name": "$2 Voucher", "points_required": 200, "description": "Redeem a $2 shopping voucher.",
+             "discount_value": 2.00},
+            {"name": "$15 Voucher", "points_required": 1500, "description": "Redeem a $15 shopping voucher.",
+             "discount_value": 15.00},
+            {"name": "$50 Voucher", "points_required": 1000, "description": "Redeem a $50 shopping voucher.",
+             "discount_value": 50.00},
+        ]
 
+        # Insert default rewards into the database
+        for reward in default_rewards:
+            db.session.add(Reward(**reward))
+
+        db.session.commit()
+        print("✅ Default rewards added to the rewards database.")
+    else:
+        print("✅ Rewards database already populated.")
     if not InventoryItem.query.first():
         # Define initial items
         initial_items = [
@@ -324,8 +373,94 @@ def aboutus():
 
 @app.route('/admin')
 def admin():
-    return render_template('admin.html')
+    print(request.path)
+    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
+    return render_template('admin.html', user=users)
 
+@app.route('/delete_user/<int:id>', methods=['POST'])
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_edit/<int:id>', methods=['GET', 'POST'])
+def admin_edit(id):
+    if request.method == 'POST':
+        # Retrieve updated data from the form
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        user = User.query.get(id)
+
+        # Validate and process data
+        if name:
+            user.name = name
+        if email:
+            user.email = email
+        if contact_number:
+            user.contact_number = contact_number
+        if role:
+            user.role = role
+        if profile_picture:
+            # Save the file, generate the file path, and update the user profile picture
+            filename = secure_filename(profile_picture.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            profile_picture.save(filepath)
+            user.profile_picture = filename
+
+        # Commit the changes to the database
+        user.set_password(password)
+        db.session.commit()
+
+        flash('User updated successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_add', methods=['GET', 'POST'])
+def admin_add():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
+
+        # Check if the email already exists
+        if User.query.filter_by(email=email).first():
+            flash('Email is already registered.')
+            return redirect(url_for('register'))
+
+        new_id = get_lowest_available_id()
+
+        # Create a new user
+        new_user = User(
+            id=new_id,
+            name=name,
+            email=email,
+            contact_number=contact_number,
+            role=role,
+            profile_picture=filename,
+        )
+
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Successfully created user!')
+    return redirect(url_for('admin'))
 
 @app.route('/')
 def home():
@@ -375,6 +510,7 @@ def register():
             role='Customer',
             profile_picture=filename,
         )
+
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
@@ -435,13 +571,35 @@ user_points = 8888
 def rewards_page():
     global user_points
     message = None
+
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
         reward = Reward.query.get(reward_id)
 
         if reward and user_points >= reward.points_required:
-            user_points -= reward.points_required
-            message = f"Successfully redeemed {reward.name}!"
+            user_points -= reward.points_required  # Deduct points
+
+            # ✅ Correctly determine discount value
+            discount_value = 0
+            if "Free Shipping" in reward.name:
+                discount_value = 13.50  # Free shipping discount
+            elif "20% Discount" in reward.name:
+                discount_value = -1  # Placeholder for percentage-based discount (to be applied at checkout)
+            else:
+                discount_value = float(reward.name.replace("$", "").split(" ")[0])  # Extract value from reward name
+
+            # ✅ Store redeemed reward in `redeemed_rewards.db` with correct discount
+            redeemed_reward = RedeemedReward(
+                user_id=session['user_id'],
+                reward_name=reward.name,
+                points_used=reward.points_required,
+                discount_value=discount_value,  # Store actual discount
+                status="Unused"
+            )
+            db.session.add(redeemed_reward)
+            db.session.commit()
+
+            message = f"Successfully redeemed {reward.name}! Please apply this discount at checkout."
         else:
             message = "You don't have enough points to redeem this reward."
 
@@ -485,7 +643,7 @@ def edit_inventory_item(item_id):
         if "delete" in request.form:
             db.session.delete(item)
             db.session.commit()
-            flash(f"Item '{item.name}' has been deleted successfully!", "success")
+            flash(f"Item '{item.name}' has been deleted successfully!")
             return redirect(url_for("inventory_page"))
 
         # Update item details
@@ -505,7 +663,7 @@ def edit_inventory_item(item_id):
                 item.image_url = filename
 
         db.session.commit()
-        flash('Item updated successfully!', "success")
+        flash('Item updated successfully!')
         return redirect(url_for("inventory_page"))
 
     return render_template("edit_item.html", item=item)
@@ -549,42 +707,32 @@ def add_new_item():
         db.session.add(new_item)
         db.session.commit()
 
-        flash('Item successfully added!', "success")
+        flash('Item successfully added!')
         return redirect(url_for('inventory_page'))
 
     return render_template('add_item.html')
 
 
-@app.route("/order_summary_staff/<int:order_id>", methods=["GET"])
-def order_summary_staff(order_id):
-    order = Order.query.get_or_404(order_id)
-
-    items = [
-        {
-            "id": item.id,
-            "name": item.get_inventory_item().name if item.get_inventory_item() else "Unknown Item",
-            "quantity": item.quantity,
-            "cost_per_item": item.cost_per_item,
-            "total_cost": item.total_cost,
-        }
-        for item in order.order_items
-    ]
-
-    return render_template("staff_order_summary.html", order=order, items=items)
-
-@app.route("/shopping", methods=["GET", "POST"])
+@app.route("/shopping", methods=["GET"])
 def shopping_page():
+    # Redirect staff users to staff dashboard
+    if 'role' in session and session['role'] == 'staff':
+        flash("Staff members cannot access the shopping page.", "warning")
+        return redirect(url_for("staff_dashboard"))
+
     # Retrieve query parameters
-    category = request.args.get("category", "all")  # Default to "all"
+    category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     sort_option = request.args.get("sort", "")
-    query = InventoryItem.query
 
-    # Filter by search query
+    # Query for inventory items while filtering out out-of-stock items
+    query = InventoryItem.query.filter(InventoryItem.stock > 0)  # Exclude items with 0 stock
+
+    # Apply search filter
     if search_query:
         query = query.filter(InventoryItem.name.ilike(f"%{search_query}%"))
 
-    # Filter by category (exclude "all" to fetch everything)
+    # Apply category filter
     if category and category != "all":
         query = query.filter_by(category=category)
 
@@ -596,31 +744,20 @@ def shopping_page():
     elif sort_option == "high-low":
         query = query.order_by(InventoryItem.price.desc())
 
-    # Fetch items from the database
+    # Fetch available items (only those with stock > 0)
     items = query.all()
 
-    # Retrieve cart from session
+    # Retrieve cart details
     cart = session.get("cart", [])
-    cart_count = session.get("cart_count", 0)  # Retrieve cart count
+    cart_count = sum(item["quantity"] for item in cart)
+    total_price = sum(item["price"] * item["quantity"] for item in cart)
 
-    # Precompute max stock for each cart item
-    for cart_item in cart:
-        item = InventoryItem.query.get(cart_item["item_id"])
-        if item:
-            cart_item["max_quantity"] = item.stock + cart_item["quantity"]  # Available stock + currently in cart
-        else:
-            cart_item["max_quantity"] = cart_item["quantity"]  # Fallback to the current quantity
-
-    # Calculate total price
-    total_price = sum(item['price'] * item['quantity'] for item in cart)
-
-    # Render the shopping page
     return render_template(
         "shopping_page.html",
-        items=items,
+        items=items,  # Only in-stock items are displayed
         cart=cart,
-        total_price=total_price,
-        cart_count=cart_count
+        cart_count=cart_count,
+        total_price=total_price
     )
 
 @app.route("/add_to_cart", methods=["POST"])
@@ -738,22 +875,52 @@ def validate_expiry_date(expiry_date):
         return expiry_date > current_date
     except (ValueError, IndexError):
         return False
+
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    # Check if the user is logged in and is a customer
     if 'role' not in session or session['role'] != 'customer':
-        flash("You are not authorized to access this page.", "danger")
-        return redirect(url_for('staff_dashboard'))  # Redirect staff to their dashboard (or another appropriate page)
+        flash("Please create an account.", "danger")
+        return redirect(url_for('staff_dashboard'))
 
+    user_id = session['user_id']
     cart = session.get('cart', [])
-    if not cart:
-        flash("Your cart is empty. Add items before proceeding to checkout.", "danger")
-        return redirect(url_for('shopping_page'))  # Redirect to shopping page if cart is empty
 
-    errors = {}  # Initialize an empty errors dictionary
+    if not cart:
+        flash("Your cart is empty. Add items before proceeding to checkout.")
+        return redirect(url_for('shopping_page'))
+
+    total_cost = sum(item['price'] * item['quantity'] for item in cart)
+    shipping_cost = 13.50
+    final_total = total_cost + shipping_cost  # Initial total
+
+    # ✅ Fetch all unused rewards for the dropdown
+    unused_rewards = RedeemedReward.query.filter_by(user_id=user_id, status="Unused").all()
+
+    # ✅ Get selected reward
+    selected_reward_id = request.form.get('reward_id', session.get('applied_reward'))
+    selected_reward = None
+    discount_amount = 0
+
+    if selected_reward_id:
+        selected_reward = RedeemedReward.query.get(int(selected_reward_id))
+        if selected_reward and selected_reward.user_id == user_id and selected_reward.status == "Unused":
+            if selected_reward.discount_value == -1:
+                discount_amount = total_cost * 0.2
+            else:
+                discount_amount = selected_reward.discount_value
+
+            final_total = max(final_total - discount_amount, 0)  # Ensure total isn't negative
+            session['applied_reward'] = selected_reward.id
+            session['applied_discount'] = discount_amount  # Store correct discount value
+        else:
+            session.pop('applied_reward', None)
+            session.pop('applied_discount', None)
+
+
+    errors = {}
 
     if request.method == 'POST':
-        # Retrieve form data
         card_number = request.form.get('card_number', '')
         expiry_date = request.form.get('expiry_date', '')
         cvc = request.form.get('cvc', '')
@@ -763,82 +930,69 @@ def checkout():
         location = request.form.get('location', '')
         comment = request.form.get('comment', '')
 
-        # Validation
-        if not card_number or len(card_number) != 16 or not card_number.isdigit():
+        if not card_number.isdigit() or len(card_number) != 16:
             errors['card_number'] = "Card number must be 16 digits."
         if not expiry_date or not validate_expiry_date(expiry_date):
-            errors['expiry_date'] = "Invalid expiry date. Use MM/YY format and ensure it is in the future."
-        if not cvc or len(cvc) != 3 or not cvc.isdigit():
+            errors['expiry_date'] = "Invalid expiry date."
+        if not cvc.isdigit() or len(cvc) != 3:
             errors['cvc'] = "CVC must be 3 digits."
-        if not name.isalpha():
+        if not name.replace(" ", "").isalpha():
             errors['name'] = "Name must contain only letters."
         if not date or not time or not location:
             errors['order'] = "Order date, time, and location are required."
 
-        # If there are errors, render the template with the errors
         if errors:
-            total_cost = sum(item['price'] * item['quantity'] for item in cart)
-            return render_template(
-                'checkout.html',
-                errors=errors,
-                card_number=card_number,
-                expiry_date=expiry_date,
-                cvc=cvc,
-                name=name,
-                date=date,
-                time=time,
-                location=location,
-                comment=comment,
-                items=cart,
-                total_cost=total_cost
-            )
+            return render_template('checkout.html', errors=errors,
+                                   card_number=card_number, expiry_date=expiry_date, cvc=cvc,
+                                   name=name, date=date, time=time, location=location, comment=comment,
+                                   items=cart, total_cost=total_cost, shipping_cost=shipping_cost,
+                                   final_total=final_total, unused_rewards=unused_rewards,
+                                   selected_reward_id=selected_reward_id, selected_reward=selected_reward)
 
-        # Fetch the logged-in user's details from the session
-        user = User.query.get(session['user_id'])  # Retrieve the user from the database
+        user = User.query.get(user_id)
         if not user:
             flash("User not found. Please log in again.", "danger")
-            return redirect(url_for('login'))  # If no user is found, redirect to login
+            return redirect(url_for('login'))
 
-        # Process Order and Save to Database
+        # ✅ Store final order details
         order = Order(
-            customer_name=user.name,  # Use the logged-in user's name
-            customer_email=user.email,  # Use the logged-in user's email
-            customer_contact=user.contact_number,  # Use the logged-in user's contact number
+            customer_name=user.name,
+            customer_email=user.email,
+            customer_contact=user.contact_number,
             date=date,
             time=time,
             location=location,
-            comments=comment
+            comments=comment,
+            total=final_total,
+            discount_applied = discount_amount, # Store discount amount
+            shipping_cost = shipping_cost  # Store shipping cost
+
         )
         db.session.add(order)
         db.session.commit()
 
-        # Save items to the order and update inventory stock
+        # ✅ Deduct stock for purchased items
         for cart_item in cart:
-            order_item = OrderItem(
-                order_id=order.id,
-                inventory_item_id=cart_item['item_id'],
-                quantity=cart_item['quantity'],
-                price=cart_item['price']
-            )
-            db.session.add(order_item)
-
-            # Update inventory stock
+            db.session.add(OrderItem(order_id=order.id, inventory_item_id=cart_item['item_id'],
+                                     quantity=cart_item['quantity'], price=cart_item['price']))
             inventory_item = InventoryItem.query.get(cart_item['item_id'])
             if inventory_item:
-                inventory_item.stock -= cart_item['quantity']
-                if inventory_item.stock < 0:
-                    inventory_item.stock = 0  # Ensure stock does not go below 0
+                inventory_item.stock = max(inventory_item.stock - cart_item['quantity'], 0)
+
+        # ✅ Mark reward as used
+        if selected_reward:
+            selected_reward.status = "Used"
+            db.session.commit()
 
         db.session.commit()
-
-        # Clear the cart
         session.pop('cart', None)
         flash("Checkout successful!", "success")
         return redirect(url_for('order_summary', order_id=order.id))
 
-    # Handle GET request
-    total_cost = sum(item['price'] * item['quantity'] for item in cart)
-    return render_template('checkout.html', items=cart, total_cost=total_cost, errors=errors)
+    return render_template('checkout.html', items=cart, total_cost=total_cost,
+                           shipping_cost=shipping_cost, final_total=final_total,
+                           unused_rewards=unused_rewards, selected_reward_id=selected_reward_id,
+                           selected_reward=selected_reward)
 
 def get_order_details(order_id):
     """
@@ -941,8 +1095,10 @@ def edit_order_item(order_id):
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
-        orders = Order.query.all()
-        notifications = 1
+        accepted_orders = Order.query.filter(Order.status == "Accepted").all()
+        pending_orders_count = Order.query.filter(Order.status == "Pending").count()
+
+        notifications = pending_orders_count
         event_revenue = 784
         low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
@@ -950,30 +1106,44 @@ def staff_dashboard():
         user = User.query.get_or_404(userid)
         filename = user.profile_picture
 
-        return render_template('staff_dashboard.html', orders=orders, notifications=notifications, event_revenue=event_revenue, low_stock_items=low_stock_items, active_page="staff_dashboard", userid=session['user_id'], profile_picture=filename)
+        return render_template(
+            'staff_dashboard.html',
+            accepted_orders=accepted_orders,
+            pending_orders_count=pending_orders_count,
+            notifications=notifications,
+            event_revenue=event_revenue,
+            low_stock_items=low_stock_items,
+            userid=session['user_id'],
+            profile_picture=filename
+        )
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
 
+
 @app.route('/customer_account')
 def customer_account():
     if 'role' in session and session['role'] == 'customer':
-        print(f"Session valid: {session}")  # Debug
-        orders = Order.query.filter_by(customer_email=session.get('email')).all()
-        notifications = 1  # Example
-        user_points = 8888  # Example
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
 
-        userid = session['user_id']
-        user = User.query.get_or_404(userid)
-        filename = user.profile_picture
+        # ✅ Fetch only pending orders for this customer
+        pending_orders = Order.query.filter_by(customer_email=user.email).all()
 
+        # ✅ Fetch only unused rewards
+        redeemed_rewards = RedeemedReward.query.filter_by(user_id=user_id, status="Unused").all()
 
-        return render_template('customer_account.html', orders=orders, notifications=notifications, user_points=user_points, profile_picture=filename, name=user.name)
+        return render_template(
+            'customer_account.html',
+            profile_picture=user.profile_picture,
+            name=user.name,
+            user_points=user_points,
+            redeemed_rewards=redeemed_rewards,  # ✅ Pass unused rewards
+            pending_orders=pending_orders  # ✅ Pass only pending orders
+        )
     else:
-        print("Unauthorized or session missing.")  # Debug
         flash('Please log in to access your account.', 'warning')
         return redirect(url_for('login'))
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1129,8 +1299,16 @@ def generate_receipt(order_id):
         else:
             receipt_content += f"Unknown Item - {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}\n"
 
-    # Add the total price at the end of the receipt
-    receipt_content += f"\nTotal Cost: ${total_price:.2f}"
+    # Add Shipping Cost
+    receipt_content += f"\nShipping Cost: ${order.shipping_cost:.2f}\n"
+
+    # Add Discount Applied
+    discount_applied = order.discount_applied if order.discount_applied else 0
+    receipt_content += f"Discount Applied: -${discount_applied:.2f}\n"
+
+    # Calculate Final Total
+    final_total = total_price + order.shipping_cost - discount_applied
+    receipt_content += f"\nFinal Total (After Shipping & Discount): ${final_total:.2f}"
 
     # Save the receipt content to a text file
     receipt_file = f"receipt_{order_id}.txt"
@@ -1138,6 +1316,7 @@ def generate_receipt(order_id):
         f.write(receipt_content)
 
     return receipt_file
+
 @app.route('/notifications', methods=['GET', 'POST'])
 def notifications():
     # Check if the user is logged in and has a 'staff' role
@@ -1195,6 +1374,28 @@ def view_order_details(order_id):
         })
 
     return render_template('order_details.html', order=order, items=items_with_inventory, total_price=total_price)
+@app.route('/use_reward/<int:reward_id>', methods=['POST'])
+def use_reward(reward_id):
+    if 'user_id' not in session:
+        flash("Please log in to use a reward.", "danger")
+        return redirect(url_for('login'))
+
+    reward = RedeemedReward.query.filter_by(id=reward_id, user_id=session['user_id'], status="Unused").first()
+
+    if not reward:
+        flash("Invalid or already used reward.", "danger")
+        return redirect(url_for('customer_account'))
+
+    # ✅ Store the correct discount amount in session
+    session['applied_reward'] = reward.id
+
+    if "20% Discount" in reward.reward_name:
+        session['applied_discount'] = -1  # Placeholder (this will be calculated dynamically in checkout)
+    else:
+        session['applied_discount'] = reward.discount_value  # ✅ Use `discount_value`, not `points_used`
+
+    flash(f"{reward.reward_name} applied! Discount of ${session['applied_discount']} will be deducted at checkout.", "success")
+    return redirect(url_for('checkout'))
 
 if __name__ == '__main__':
     app.run(debug=True)
