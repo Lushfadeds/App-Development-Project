@@ -182,9 +182,9 @@ with app.app_context():
             id=1,
             name='admin',
             email='admin@mamaks.com',
-            contact_number='',
+            contact_number='11111111',
             role='admin',
-            profile_picture='',
+            profile_picture='unknown.png',
         )
         admin_user.set_password('admin123')
         db.session.add(admin_user)
@@ -375,8 +375,94 @@ def aboutus():
 
 @app.route('/admin')
 def admin():
-    return render_template('admin.html')
+    print(request.path)
+    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
+    return render_template('admin.html', user=users)
 
+@app.route('/delete_user/<int:id>', methods=['POST'])
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_edit/<int:id>', methods=['GET', 'POST'])
+def admin_edit(id):
+    if request.method == 'POST':
+        # Retrieve updated data from the form
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        user = User.query.get(id)
+
+        # Validate and process data
+        if name:
+            user.name = name
+        if email:
+            user.email = email
+        if contact_number:
+            user.contact_number = contact_number
+        if role:
+            user.role = role
+        if profile_picture:
+            # Save the file, generate the file path, and update the user profile picture
+            filename = secure_filename(profile_picture.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            profile_picture.save(filepath)
+            user.profile_picture = filename
+
+        # Commit the changes to the database
+        user.set_password(password)
+        db.session.commit()
+
+        flash('User updated successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_add', methods=['GET', 'POST'])
+def admin_add():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
+
+        # Check if the email already exists
+        if User.query.filter_by(email=email).first():
+            flash('Email is already registered.')
+            return redirect(url_for('register'))
+
+        new_id = get_lowest_available_id()
+
+        # Create a new user
+        new_user = User(
+            id=new_id,
+            name=name,
+            email=email,
+            contact_number=contact_number,
+            role=role,
+            profile_picture=filename,
+        )
+
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Successfully created user!')
+    return redirect(url_for('admin'))
 
 @app.route('/')
 def home():
@@ -423,9 +509,10 @@ def register():
             name=name,
             email=email,
             contact_number=contact_number,
-            role='customer',
+            role='Customer',
             profile_picture=filename,
         )
+
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
@@ -477,42 +564,38 @@ def delete_rewards(id):
     flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
 
+
+
+user_points = 8888
+
+
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
-    if 'user_id' not in session:
-        flash("Please log in to redeem rewards.", "danger")
-        return redirect(url_for('login'))
-
-    user = User.query.get(session['user_id'])
-    if not user:
-        flash("User not found. Please log in again.", "danger")
-        return redirect(url_for('login'))
-
+    global user_points
     message = None
 
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
         reward = Reward.query.get(reward_id)
 
-        if reward and user.points >= reward.points_required:
-            user.points -= reward.points_required  # ✅ Deduct points from the database
-            db.session.commit()
+        if reward and user_points >= reward.points_required:
+            user_points -= reward.points_required  # Deduct points
 
             # ✅ Correctly determine discount value
             discount_value = 0
             if "Free Shipping" in reward.name:
                 discount_value = 13.50  # Free shipping discount
             elif "20% Discount" in reward.name:
-                discount_value = -1  # Placeholder for percentage-based discount (applied at checkout)
+                discount_value = -1  # Placeholder for percentage-based discount (to be applied at checkout)
             else:
                 discount_value = float(reward.name.replace("$", "").split(" ")[0])  # Extract value from reward name
 
-            # ✅ Store redeemed reward in `redeemed_rewards.db`
+            # ✅ Store redeemed reward in `redeemed_rewards.db` with correct discount
             redeemed_reward = RedeemedReward(
-                user_id=user.id,
+                user_id=session['user_id'],
                 reward_name=reward.name,
                 points_used=reward.points_required,
-                discount_value=discount_value,
+                discount_value=discount_value,  # Store actual discount
                 status="Unused"
             )
             db.session.add(redeemed_reward)
@@ -527,7 +610,7 @@ def rewards_page():
     return render_template(
         'rewards.html',
         rewards=rewards,
-        user_points=user.points,  # ✅ Fetch actual points from DB
+        user_points=user_points,
         message=message
     )
 
@@ -1056,9 +1139,9 @@ def customer_account():
             'customer_account.html',
             profile_picture=user.profile_picture,
             name=user.name,
-            user_points=user.points,  # ✅ Use points from DB instead of a global variable
-            redeemed_rewards=redeemed_rewards,
-            pending_orders=pending_orders
+            user_points=user_points,
+            redeemed_rewards=redeemed_rewards,  # ✅ Pass unused rewards
+            pending_orders=pending_orders  # ✅ Pass only pending orders
         )
     else:
         flash('Please log in to access your account.', 'warning')
