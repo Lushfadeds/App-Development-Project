@@ -553,7 +553,8 @@ def create_rewards():
         name = request.form['name']
         points_required = request.form['points_required']
         description = request.form['description']
-        new_reward = Reward(name=name, points_required=points_required, description=description)
+        discount_value = 0
+        new_reward = Reward(name=name, points_required=points_required, description=description,discount_value = discount_value)
         db.session.add(new_reward)
         db.session.commit()
         flash("Reward created successfully!", "success")
@@ -1272,10 +1273,48 @@ def submit_contact_us():
     elif not message or len(message) < 10:
         flash('Message must be at least 10 characters long.', 'danger')
     else:
+        # Save feedback to the database
+        feedback = Feedback(
+            feedback_type=feedback_type,
+            full_name=full_name,
+            email=email,
+            message=message,
+            replied=False
+        )
+        db.session.add(feedback)
+        db.session.commit()
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
     return redirect('/contact_us')
+
+# Route to view feedback and replies
+@app.route('/contact_us_data')
+def contact_us_data():
+    feedback_list = Feedback.query.all()
+    reply_list = Reply.query.all()
+    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list)
+
+# Route to reply to feedback
+@app.route('/reply_to_feedback', methods=['POST'])
+def reply_to_feedback():
+    email = request.form.get('email')
+    reply_message = request.form.get('reply_message')
+
+    # Update the feedback to mark it as replied
+    feedback = Feedback.query.filter_by(email=email, replied=False).first()
+    if feedback:
+        feedback.replied = True
+        db.session.add(feedback)
+        db.session.commit()
+
+        # Save the reply to the database
+        reply = Reply(email=email, reply_message=reply_message)
+        db.session.add(reply)
+        db.session.commit()
+        flash('Reply sent successfully!', 'success')
+
+    return redirect('/contact_us_data')
 
 @app.route('/points_system')
 def points_system():

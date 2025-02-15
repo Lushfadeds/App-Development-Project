@@ -1,6 +1,7 @@
-{% extends "base.html" %}
+{% extends "staff_base.html" %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='create_rewards.css') }}">
+<div class="container mt-4 update-reward-form">
 <h1 class="text-center">Add New Reward</h1>
 <form method="POST" class="mt-4">
     <div class="mb-3">
@@ -17,4 +18,5 @@
     </div>
     <button type="submit" class="btn btn-primary">Add Reward</button>
 </form>
+</div>
 {% endblock %}
