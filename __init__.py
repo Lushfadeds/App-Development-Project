@@ -375,7 +375,16 @@ def delete(id):
 
 @app.route('/aboutus')
 def aboutus():
-    return render_template('aboutus.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('aboutus.html', profile_picture=profile_picture, userid=user_id)
 
 @app.route('/admin')
 def admin():
@@ -470,6 +479,15 @@ def admin_add():
 
 @app.route('/')
 def home():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
         ]
@@ -575,6 +593,15 @@ user_points = 8888
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     global user_points
     message = None
 
@@ -615,7 +642,9 @@ def rewards_page():
         'rewards.html',
         rewards=rewards,
         user_points=user_points,
-        message=message
+        message=message,
+    profile_picture = profile_picture,
+    userid = user_id
     )
 
 
@@ -721,6 +750,15 @@ def add_new_item():
 
 @app.route("/shopping", methods=["GET"])
 def shopping_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Redirect staff users to staff dashboard
     if 'role' in session and session['role'] == 'staff':
         flash("Staff members cannot access the shopping page.", "warning")
@@ -763,8 +801,9 @@ def shopping_page():
         items=items,  # Only in-stock items are displayed
         cart=cart,
         cart_count=cart_count,
-        total_price=total_price
-    )
+        total_price=total_price,
+        profile_picture=profile_picture,
+        userid=user_id    )
 
 @app.route("/add_to_cart", methods=["POST"])
 def add_to_cart():
@@ -885,7 +924,7 @@ def validate_expiry_date(expiry_date):
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    if 'role' not in session or session['role'] != 'customer':
+    if 'role' not in session or session['role'] != 'Customer':
         flash("Please create an account.", "danger")
         return redirect(url_for('staff_dashboard'))
 
@@ -1210,7 +1249,15 @@ def is_valid_email(email):
 
 @app.route('/contact_us')
 def contact_us_page():
-    return render_template('contact_us.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('contact_us.html', profile_picture=profile_picture, userid=user_id)
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
@@ -1272,6 +1319,15 @@ def reply_to_feedback():
 
 @app.route('/points_system')
 def points_system():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Ensure user is logged in
     if 'user_id' not in session:
         flash("Please log in to access this page.", "danger")
@@ -1285,7 +1341,7 @@ def points_system():
         flash("Only customers can access this page.", "danger")
         return redirect(url_for('customer_account' if user.role == "customer" else 'staff_dashboard'))
 
-    return render_template('points_system.html', points=user.points, streak=user.streak)
+    return render_template('points_system.html', points=session['points'], streak=session['streak'], profile_picture=profile_picture, userid= user_id)
 
 @app.route('/spin', methods=['POST'])
 def spin():
