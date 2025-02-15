@@ -111,7 +111,9 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     profile_picture = db.Column(db.String(255), nullable=False)
     points = db.Column(db.Integer, default=0)  #  Default points set to 0
-
+    streak = db.Column(db.Integer, default=0)  # Streak starts at 0
+    last_login = db.Column(db.Date, nullable=True, default=None)  # ✅ Ensure `last_login` starts as `None`
+    streak_data = db.Column(db.Text, default="{}")  # ✅ Store login history as JSON
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -374,16 +376,7 @@ def delete(id):
 
 @app.route('/aboutus')
 def aboutus():
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
-        profile_picture = user.profile_picture
-
-    else:
-        user_id = None
-        profile_picture = "unknown.png"
-
-    return render_template('aboutus.html', profile_picture=profile_picture, userid=user_id)
+    return render_template('aboutus.html')
 
 @app.route('/admin')
 def admin():
@@ -478,15 +471,6 @@ def admin_add():
 
 @app.route('/')
 def home():
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
-        profile_picture = user.profile_picture
-
-    else:
-        user_id = None
-        profile_picture = "unknown.png"
-
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
         ]
@@ -494,7 +478,7 @@ def home():
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community, profile_picture=profile_picture, userid=user_id)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
 
 
 def get_lowest_available_id():
@@ -556,8 +540,7 @@ def create_rewards():
         name = request.form['name']
         points_required = request.form['points_required']
         description = request.form['description']
-        discount_value = 0
-        new_reward = Reward(name=name, points_required=points_required, description=description,discount_value = discount_value)
+        new_reward = Reward(name=name, points_required=points_required, description=description)
         db.session.add(new_reward)
         db.session.commit()
         flash("Reward created successfully!", "success")
@@ -593,15 +576,6 @@ user_points = 8888
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
-        profile_picture = user.profile_picture
-
-    else:
-        user_id = None
-        profile_picture = "unknown.png"
-
     global user_points
     message = None
 
@@ -642,9 +616,7 @@ def rewards_page():
         'rewards.html',
         rewards=rewards,
         user_points=user_points,
-        message=message,
-        profile_picture=profile_picture,
-        userid= user_id
+        message=message
     )
 
 
@@ -750,15 +722,6 @@ def add_new_item():
 
 @app.route("/shopping", methods=["GET"])
 def shopping_page():
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
-        profile_picture = user.profile_picture
-
-    else:
-        user_id = None
-        profile_picture = "unknown.png"
-
     # Redirect staff users to staff dashboard
     if 'role' in session and session['role'] == 'staff':
         flash("Staff members cannot access the shopping page.", "warning")
@@ -801,9 +764,7 @@ def shopping_page():
         items=items,  # Only in-stock items are displayed
         cart=cart,
         cart_count=cart_count,
-        total_price=total_price,
-        profile_picture=profile_picture,
-        userid=user_id
+        total_price=total_price
     )
 
 @app.route("/add_to_cart", methods=["POST"])
@@ -1250,15 +1211,7 @@ def is_valid_email(email):
 
 @app.route('/contact_us')
 def contact_us_page():
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
-        profile_picture = user.profile_picture
-    else:
-        user_id = None
-        profile_picture = "unknown.png"
-
-    return render_template('contact_us.html', profile_picture=profile_picture, userid= user_id)
+    return render_template('contact_us.html')
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
@@ -1276,48 +1229,10 @@ def submit_contact_us():
     elif not message or len(message) < 10:
         flash('Message must be at least 10 characters long.', 'danger')
     else:
-        # Save feedback to the database
-        feedback = Feedback(
-            feedback_type=feedback_type,
-            full_name=full_name,
-            email=email,
-            message=message,
-            replied=False
-        )
-        db.session.add(feedback)
-        db.session.commit()
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
     return redirect('/contact_us')
-
-# Route to view feedback and replies
-@app.route('/contact_us_data')
-def contact_us_data():
-    feedback_list = Feedback.query.all()
-    reply_list = Reply.query.all()
-    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list)
-
-# Route to reply to feedback
-@app.route('/reply_to_feedback', methods=['POST'])
-def reply_to_feedback():
-    email = request.form.get('email')
-    reply_message = request.form.get('reply_message')
-
-    # Update the feedback to mark it as replied
-    feedback = Feedback.query.filter_by(email=email, replied=False).first()
-    if feedback:
-        feedback.replied = True
-        db.session.add(feedback)
-        db.session.commit()
-
-        # Save the reply to the database
-        reply = Reply(email=email, reply_message=reply_message)
-        db.session.add(reply)
-        db.session.commit()
-        flash('Reply sent successfully!', 'success')
-
-    return redirect('/contact_us_data')
 
 @app.route('/points_system')
 def points_system():
