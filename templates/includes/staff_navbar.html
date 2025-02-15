@@ -1,9 +1,27 @@
-<link href="{{ url_for('static', filename='staff_navbar.css') }}" rel="stylesheet">
-
-<div class="col-4 sidebar fs-5">
-    <a href="{{ url_for('staff_dashboard') }}" class="{% if active_page == 'staff_dashboard' %}active{% endif %}"><i class="fa-solid fa-house"></i>Dashboard</a>
-    <a href="{{ url_for('staff_analytics') }}" class="{% if active_page == 'staffanalytics' %}active{% endif %}"><i class="fa-solid fa-chart-line"></i>Analytics</a>
-    <a href="{{ url_for('inventory_page') }}" class="{% if active_page == 'inventory_page' %}active{% endif %}"><i class="fa-solid fa-box"></i>Inventory</a>
-    <a href="#"><i class="fa-solid fa-calendar"></i>Events</a>
-    <a href="{{ url_for('rewards_index') }}" class="{% if active_page == 'rewards' %}active{% endif %}"><i class="fa-solid fa-award"></i>Rewards</a>
-</div>
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand mx-4" href="#">
+      <img src="{{ url_for('static', filename='MEICON.jpg')}}" class="navbar-logo">
+      <a class="nav-link fw-bold nav-custom" href="/">MAMAKS EVENTS</a>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNavAltMarkup">
+      <div class="navbar-nav mx-4 fw-bold">
+        <a class="nav-link px-3" href="{{url_for('staff_dashboard')}}">Dashboard</a>
+        <a class="nav-link px-3" href="{{url_for('staff_analytics')}}">Analytics</a>
+        <a class="nav-link px-3" href="#">Events</a>
+        <a class="nav-link px-3" href="{{url_for('rewards_index')}}">Rewards</a>
+        <a class="nav-link px-3" href="{{url_for('inventory_page')}}">Inventory</a>
+        {% if userid %}
+          <form method="POST" action="{{ url_for('logout') }}">
+            <button type="submit" class="btn fw-bold">Log out</button>
+          </form>
+        {% else %}
+          <a href="{{url_for('login')}}" ><button type="button" class="btn mx-2 px-3 fw-bold">Login</button></a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>

@@ -118,12 +118,23 @@ categories-section ul li a {
 /* Inventory Grid */
 .inventory-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* Four items per row */
+    grid-template-columns: repeat(4, 1fr); /* Ensures 4 items per row */
     gap: 20px;
     padding-bottom: 20px;
     padding-top: 20px;
 }
 
+.row {
+    --bs-gutter-x: 1.5rem;
+    --bs-gutter-y: 0;
+    display: flex
+;
+    flex-wrap: wrap;
+    margin-top: calc(-1* var(--bs-gutter-y));
+    margin-right: calc(-.5* var(--bs-gutter-x));
+    margin-left: calc(-.5* var(--bs-gutter-x));
+    margin-top:20px;
+}
 /* Inventory Items */
 .inventory-item {
     background-color: white;
@@ -139,11 +150,14 @@ categories-section ul li a {
 }
 
 .item-image {
-    height: 150px;
-    object-fit: cover;
+    width: 100%; /* Ensures it fills the container */
+    height: auto; /* Maintains the aspect ratio */
+    max-height: 180px; /* Prevents images from being too large */
+    object-fit: contain; /* Prevents cropping */
     margin-bottom: 15px;
     border-radius: 5px;
 }
+
 
 .card-title {
     font-size: 1.2rem;
@@ -246,26 +260,33 @@ categories-section ul li a {
 
 .shopping-page .inventory-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive columns */
+    grid-template-columns: repeat(4, 1fr); /* Matches inventory page */
     gap: 20px;
-    padding: 20px 0;
+    width: 100%;
+    padding: 0 10px;
 }
+
 
 .shopping-page .inventory-item {
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 5px;
-    text-align: center;
     padding: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .shopping-page .item-image {
-    height: 150px;
-    object-fit: cover;
+    width: 100%; /* Ensures it scales to fit container */
+    height: auto; /* Keeps aspect ratio */
+    max-height: 150px; /* Prevents excessive stretching */
+    object-fit: contain; /* Ensures full image is shown */
     margin-bottom: 15px;
     border-radius: 5px;
 }
+
 
 .shopping-page .card-title {
     font-size: 1.2rem;
