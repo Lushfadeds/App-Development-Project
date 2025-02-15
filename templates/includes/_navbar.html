@@ -14,12 +14,11 @@
         <a class="nav-link px-3" href="{{url_for('points_system')}}">Earn Points</a>
         <a class="nav-link px-3" href="{{url_for('rewards_page')}}">Rewards</a>
         <a class="nav-link px-3" href="{{url_for('contact_us_page')}}">Contact Us</a>
+
         {% if userid %}
-          <form method="POST" action="{{ url_for('logout') }}">
-            <button type="submit" class="btn fw-bold">Log out</button>
-          </form>
+        <a class="nav-link px-3" href="{{url_for('customer_account')}}"><img src="{{ url_for('static', filename=profile_picture) }}" class="rounded-circle" width="40" height="40" alt="Profile"></a>
         {% else %}
-          <a href="{{url_for('login')}}" ><button type="button" class="btn mx-2 px-3 fw-bold">Login</button></a>
+        <a class="nav-link px-3" href="{{url_for('customer_account')}}"><img src="{{ url_for('static', filename='unknown.png') }}" class="rounded-circle" width="40" height="40" alt="Profile"></a>
         {% endif %}
       </div>
     </div>

@@ -1,4 +1,5 @@
-form {
+/* Scope styles only to the form */
+.update-reward-form {
     max-width: 600px;
     margin: 30px auto;
     padding: 20px;
@@ -7,7 +8,7 @@ form {
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-h1.text-center {
+.update-reward-form h1 {
     text-align: center;
     color: #343a40;
     font-size: 2.5rem;
@@ -15,13 +16,12 @@ h1.text-center {
     margin-bottom: 20px;
 }
 
-
-.form-label {
+.update-reward-form .form-label {
     font-size: 1.1rem;
     color: #495057;
 }
 
-.form-control {
+.update-reward-form .form-control {
     border: 1px solid #ced4da;
     border-radius: 5px;
     padding: 10px;
@@ -29,16 +29,16 @@ h1.text-center {
     width: 100%;
 }
 
-.form-control:focus {
+.update-reward-form .form-control:focus {
     border-color: #007bff;
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
-textarea.form-control {
+.update-reward-form textarea.form-control {
     height: 150px;
 }
 
-.btn-primary {
+.update-reward-form .btn-primary {
     display: inline-block;
     background-color: #007bff;
     color: white;
@@ -50,10 +50,12 @@ textarea.form-control {
     margin-top: 20px;
 }
 
-.btn-primary:hover {
+.update-reward-form .btn-primary:hover {
     background-color: #0056b3;
 }
 
 @media screen and (max-width: 768px) {
-    h1.text-center {
-        font
+    .update-reward-form h1 {
+        font-size: 2rem;
+    }
+}
