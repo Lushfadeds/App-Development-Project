@@ -371,7 +371,16 @@ def delete(id):
 
 @app.route('/aboutus')
 def aboutus():
-    return render_template('aboutus.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('aboutus.html', profile_picture=profile_picture, userid=user_id)
 
 @app.route('/admin')
 def admin():
@@ -466,6 +475,15 @@ def admin_add():
 
 @app.route('/')
 def home():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
         ]
@@ -473,7 +491,7 @@ def home():
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community, profile_picture=profile_picture, userid=user_id)
 
 
 def get_lowest_available_id():
@@ -571,6 +589,15 @@ user_points = 8888
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     global user_points
     message = None
 
@@ -611,7 +638,9 @@ def rewards_page():
         'rewards.html',
         rewards=rewards,
         user_points=user_points,
-        message=message
+        message=message,
+        profile_picture=profile_picture,
+        userid= user_id
     )
 
 
@@ -717,6 +746,15 @@ def add_new_item():
 
 @app.route("/shopping", methods=["GET"])
 def shopping_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Redirect staff users to staff dashboard
     if 'role' in session and session['role'] == 'staff':
         flash("Staff members cannot access the shopping page.", "warning")
@@ -759,7 +797,9 @@ def shopping_page():
         items=items,  # Only in-stock items are displayed
         cart=cart,
         cart_count=cart_count,
-        total_price=total_price
+        total_price=total_price,
+        profile_picture=profile_picture,
+        userid=user_id
     )
 
 @app.route("/add_to_cart", methods=["POST"])
@@ -1206,7 +1246,15 @@ def is_valid_email(email):
 
 @app.route('/contact_us')
 def contact_us_page():
-    return render_template('contact_us.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('contact_us.html', profile_picture=profile_picture, userid= user_id)
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
@@ -1231,6 +1279,15 @@ def submit_contact_us():
 
 @app.route('/points_system')
 def points_system():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Initialize session variables if not set
     if 'points' not in session:
         session['points'] = 0
@@ -1248,7 +1305,7 @@ def points_system():
         session['streak'] += 1
         session['points'] += 2  # Add points for daily login
 
-    return render_template('points_system.html', points=session['points'], streak=session['streak'])
+    return render_template('points_system.html', points=session['points'], streak=session['streak'], profile_picture=profile_picture, userid= user_id)
 
 @app.route('/spin', methods=['POST'])
 def spin():
