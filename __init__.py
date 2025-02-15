@@ -156,9 +156,9 @@ with app.app_context():
             id=1,
             name='admin',
             email='admin@mamaks.com',
-            contact_number='',
+            contact_number='11111111',
             role='admin',
-            profile_picture='',
+            profile_picture='unknown.png',
         )
         admin_user.set_password('admin123')
         db.session.add(admin_user)
@@ -324,8 +324,94 @@ def aboutus():
 
 @app.route('/admin')
 def admin():
-    return render_template('admin.html')
+    print(request.path)
+    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
+    return render_template('admin.html', user=users)
 
+@app.route('/delete_user/<int:id>', methods=['POST'])
+def delete_user(id):
+    user = User.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_edit/<int:id>', methods=['GET', 'POST'])
+def admin_edit(id):
+    if request.method == 'POST':
+        # Retrieve updated data from the form
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        user = User.query.get(id)
+
+        # Validate and process data
+        if name:
+            user.name = name
+        if email:
+            user.email = email
+        if contact_number:
+            user.contact_number = contact_number
+        if role:
+            user.role = role
+        if profile_picture:
+            # Save the file, generate the file path, and update the user profile picture
+            filename = secure_filename(profile_picture.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            profile_picture.save(filepath)
+            user.profile_picture = filename
+
+        # Commit the changes to the database
+        user.set_password(password)
+        db.session.commit()
+
+        flash('User updated successfully!', 'success')
+
+    return redirect(url_for('admin'))
+
+@app.route('/admin_add', methods=['GET', 'POST'])
+def admin_add():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        contact_number = request.form['contact_number']
+        profile_picture = request.files['profile']
+        role = request.form['role']
+
+        # Secure the filename and save it in the 'pfp' folder
+        filename = secure_filename(profile_picture.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture.save(filepath)
+
+        # Check if the email already exists
+        if User.query.filter_by(email=email).first():
+            flash('Email is already registered.')
+            return redirect(url_for('register'))
+
+        new_id = get_lowest_available_id()
+
+        # Create a new user
+        new_user = User(
+            id=new_id,
+            name=name,
+            email=email,
+            contact_number=contact_number,
+            role=role,
+            profile_picture=filename,
+        )
+
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Successfully created user!')
+    return redirect(url_for('admin'))
 
 @app.route('/')
 def home():
@@ -375,6 +461,7 @@ def register():
             role='customer',
             profile_picture=filename,
         )
+
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
