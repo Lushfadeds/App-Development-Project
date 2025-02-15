@@ -1,10 +1,12 @@
-{% extends "base.html" %}
+{% extends "staff_base.html" %}
 {% block content %}
 <link href="{{ url_for('static', filename='staff_dashboard.css') }}" rel="stylesheet">
 
 <div class="container-fluid px-0">
+
   <div class="row">
-    {% include "includes/staff_navbar.html" %}
+
+    {% include "includes/staff_side_navbar.html" %}
 
     <div class="col-9 mx-auto">
 
@@ -13,7 +15,7 @@
             <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid w-25" alt="Profile">
             <div class="my-auto">
                 <h1>Welcome, {{ session['role'].capitalize() }}!</h1>
-                <p class="lead">Organize your business and improve your performance here!</p>
+                <p class="lead">Organise your business and improve your performance here!</p>
             </div>
         </div>
       </div>
@@ -53,9 +55,9 @@
         <div class="col-12">
           <div class="card h-100">
             <div class="card-body px-5 py-4">
-              <h5 class="card-title fs-4">New Orders Pending</h5>
-              <p class="notif card-text fs-2"><span id="notificationCount">{{ pending_orders_count }}</span> Notification(s)</p>
-              <a href="{{ url_for('notifications') }}" class="btn btn-primary w-100 fs-5 fw-bold p-2 mt-2">View Notifications</a>
+              <h5 class="card-title fs-4">You currently have: </h5>
+              <p class="notif card-text fs-2">1 Notification(s)</p>
+              <a href="#" class="btn btn-primary w-100 fs-5 fw-bold p-2 mt-2">View notifications</a>
             </div>
           </div>
         </div>
@@ -90,9 +92,6 @@
                 {% endif %}
             </tbody>
         </table>
-      </div>
-
     </div>
-  </div>
 </div>
 {% endblock %}
