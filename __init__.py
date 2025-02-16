@@ -296,12 +296,17 @@ create_dash_app(app)
 
 @app.route('/staff_analytics')
 def staff_analytics():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
     max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
     stats = Stats.query.all()
     for i in stats:
         print(i.day)
 
-    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry)
+    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/add_graph', methods=['POST'])
@@ -491,10 +496,11 @@ def admin_add():
 
 @app.route('/')
 def home():
-    if 'role' in session and session['role'] == 'Customer':
+    if 'role' in session:
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
         profile_picture = user.profile_picture
+        user_role = session['role']  # Get role from session
 
     else:
         user_id = None
@@ -507,7 +513,7 @@ def home():
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community, profile_picture=profile_picture, userid=user_id, user_role=user_role )
 
 
 def get_lowest_available_id():
@@ -559,8 +565,17 @@ def register():
 
 @app.route('/rewards_index')
 def rewards_index():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     rewards = Reward.query.all()
-    return render_template('rewards_index.html', rewards=rewards, active_page='rewards')
+    return render_template('rewards_index.html', rewards=rewards, active_page='rewards', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/create_rewards', methods=['GET', 'POST'])
@@ -665,6 +680,15 @@ def rewards_page():
 
 @app.route("/inventory", methods=["GET"])
 def inventory_page():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
@@ -682,7 +706,7 @@ def inventory_page():
         query = query.filter(InventoryItem.stock == 0)
 
     inventory_items = query.all()
-    return render_template("inventory.html", items=inventory_items)
+    return render_template("inventory.html", items=inventory_items, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route("/inventory/edit/<int:item_id>", methods=["GET", "POST"])
@@ -1311,9 +1335,18 @@ def submit_contact_us():
 # Route to view feedback and replies
 @app.route('/contact_us_data')
 def contact_us_data():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     feedback_list = Feedback.query.all()
     reply_list = Reply.query.all()
-    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list)
+    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list, profile_picture=profile_picture, userid=user_id)
 
 # Route to reply to feedback
 @app.route('/reply_to_feedback', methods=['POST'])

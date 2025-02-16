@@ -99,10 +99,10 @@
         <h1>Welcome back, Admin!</h1>
         <p class="lead fs-6">Edit, Delete, Create Accounts Here!</p>
         {% if userid %}
-                    <form method="POST" action="{{ url_for('logout') }}">
-                        <button type="submit" class="btn fw-bold">Log out</button>
-                    </form>
-                {% endif %}
+            <form method="POST" action="{{ url_for('logout') }}">
+                <button type="submit" class="btn logout-btn fw-bold">Log out</button>
+            </form>
+        {% endif %}
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for msg in messages %}

@@ -13,9 +13,11 @@
   <body>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
 
-    {% block navbar %}
-        {% include 'includes/_navbar.html' %}
-    {% endblock %}
+    {% if user_role == 'staff' %}
+            {% include 'includes/staff_navbar.html' %}
+    {% else %}
+            {% include 'includes/_navbar.html' %}
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
 

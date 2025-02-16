@@ -6,8 +6,6 @@
 
   <div class="row">
 
-    {% include "includes/staff_side_navbar.html" %}
-
     <div class="col-9 mx-auto">
 
       <div class="row">
@@ -16,6 +14,11 @@
             <div class="my-auto">
                 <h1>Welcome, {{ session['role'].capitalize() }}!</h1>
                 <p class="lead">Organise your business and improve your performance here!</p>
+                {% if userid %}
+                    <form method="POST" action="{{ url_for('logout') }}">
+                        <button type="submit" class="btn fw-bold">Log out</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
       </div>
