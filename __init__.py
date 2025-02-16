@@ -104,16 +104,17 @@ class InventoryItem(db.Model):
 class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False) # no two users can have the same email
-    password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
-    contact_number = db.Column(db.String(15), nullable=False)  # Phone number
-    role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
+    name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    contact_number = db.Column(db.String(15), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
     profile_picture = db.Column(db.String(255), nullable=False)
-    points = db.Column(db.Integer, default=0)  #  Default points set to 0
-    streak = db.Column(db.Integer, default=0)  # Streak starts at 0
-    last_login = db.Column(db.Date, nullable=True, default=None)  # ✅ Ensure `last_login` starts as `None`
-    streak_data = db.Column(db.Text, default="{}")  # ✅ Store login history as JSON
+    points = db.Column(db.Integer, default=0)
+    streak = db.Column(db.Integer, default=0)
+    last_login = db.Column(db.Date, nullable=True, default=None)
+    streak_data = db.Column(db.Text, default=json.dumps({}))  # ✅ Empty JSON by default
+    last_wheel_spin = db.Column(db.Date, nullable=True, default=None)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -531,26 +532,29 @@ def register():
         contact_number = request.form['contact_number']
         profile_picture = request.files['profile']
 
-        # Secure the filename and save it in the 'pfp' folder
+        # Secure the filename and save it
         filename = secure_filename(profile_picture.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         profile_picture.save(filepath)
 
-        # Check if the email already exists
+        # **Force New Users to Start Fresh**
+        session.clear()  # ✅ Clears any old session data
+
+        # **Check if email is already registered**
         if User.query.filter_by(email=email).first():
             flash('Email is already registered.')
             return redirect(url_for('register'))
 
-        new_id = get_lowest_available_id()
-
-        # Create a new user
+        # **Create a new user with a fresh streak & login**
         new_user = User(
-            id=new_id,
             name=name,
             email=email,
             contact_number=contact_number,
             role='Customer',
             profile_picture=filename,
+            streak=0,  # ✅ Start fresh
+            last_login=None,  # ✅ Ensure last login is empty
+            streak_data=json.dumps({})  # ✅ Ensure no previous streaks
         )
 
         new_user.set_password(password)
@@ -1407,20 +1411,21 @@ def spin():
     user = User.query.get(session['user_id'])
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    if user.role != 'Customer':  # ✅ Only customers can spin the wheel
+    if user.role != 'Customer':
         return jsonify({'error': 'Only Customers can spin the wheel'}), 403
 
     today = datetime.utcnow().date()
 
-    # Prevent spinning more than once per day
-    if session.get('spun_today') == today.isoformat():
-        return jsonify({'error': 'You already spun the wheel today', 'points': user.points})
+    # ✅ Check if the user has already spun the wheel today
+    if user.last_wheel_spin == today:
+        return jsonify({'error': 'You have already spun the wheel today', 'points': user.points})
 
+    # ✅ If not, allow the user to spin
     outcomes = [2, 3, 5, 10, 0]  # Possible point rewards
     result = random.choice(outcomes)
 
     user.points += result
-    session['spun_today'] = today.isoformat()  # ✅ Track spin without modifying streak
+    user.last_wheel_spin = today  # ✅ Store the spin date in the database
     db.session.commit()
 
     return jsonify({
@@ -1569,65 +1574,123 @@ def use_reward(reward_id):
 @app.route('/collect_points', methods=['POST'])
 def collect_points():
     if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized - Please log in'}), 403
+        print("❌ User not logged in.")
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        print("❌ User not found.")
+        return jsonify({'error': 'User not found'}), 404
+
+    today = datetime.utcnow().date()
+    today_name = today.strftime('%A')
+
+    # Load user's existing streak data
+    streak_data = json.loads(user.streak_data) if user.streak_data else {}
+
+    # **Check if the user already collected points today**
+    if today_name in streak_data:
+        print(f"⚠️ {user.name} already collected points today.")
+        return jsonify({'error': 'Points already collected today'}), 400
+
+    # **NEW: Handle Streak Logic Correctly**
+    if user.last_login is None:
+        print(f"✅ First-time login for {user.name}. Setting streak to 1.")
+        user.streak = 1  # ✅ Ensure streak starts at 1
+    else:
+        days_since_last_login = (today - user.last_login).days
+
+        if days_since_last_login == 1:
+            # ✅ Increase streak if logged in the next day
+            user.streak += 1
+        elif days_since_last_login > 1:
+            # ✅ Reset streak if a day is missed
+            user.streak = 1
+            streak_data = {}  # Clear past streak data
+
+        # ✅ If a new week starts, reset the streak
+        if 'Sunday' in streak_data and today_name == 'Monday':
+            streak_data = {}
+            user.streak = 1
+
+    # ✅ Calculate Points Earned Based on Streak
+    points_earned = min(user.streak * 10, 100)  # ✅ Cap at 100 points per day
+    user.points += points_earned
+
+    # ✅ Mark Today as Collected
+    streak_data[today_name] = True
+    user.streak_data = json.dumps(streak_data)
+
+    # ✅ Update Last Login & Ensure Streak is Saved
+    user.last_login = today
+
+    try:
+        db.session.commit()  # ✅ Force database update
+        print(f"✅ Streak Updated for {user.name}: {user.streak}, Last Login: {user.last_login}, Points Earned: {points_earned}, Total Points: {user.points}")
+    except Exception as e:
+        db.session.rollback()  # ❌ Rollback in case of failure
+        print(f"❌ Error updating streak: {e}")
+
+    return jsonify({
+        'points': user.points,
+        'streak': user.streak,
+        'message': f'+{points_earned} points',
+        'streakData': streak_data
+    })
+
+
+@app.route('/get_user_data')
+def get_user_data():
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
 
     user = User.query.get(session['user_id'])
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    if user.role != 'Customer':
-        return jsonify({'error': 'Only Customers can collect points'}), 403
 
-    today = date.today()
+    today = datetime.utcnow().date()
+    is_new_user = False  # ✅ Flag to track first login
 
-    # ✅ Only update streak when user actually clicks "Collect Points"
-    if user.last_login == today:
-        return jsonify({'error': 'You already collected points today', 'points': user.points})
+    # ✅ First-Time User: Award 500 Points
+    if user.last_login is None:
+        print(f"🎉 First-Time User Detected: {user.name} - Awarding 500 Points!")
+        user.streak = 1  # ✅ Start fresh streak
+        user.points += 500  # ✅ Award 500 points
+        user.streak_data = json.dumps({})
+        is_new_user = True  # ✅ Mark user as new
 
-    # **Fix Streak Calculation**
-    if user.last_login is None or (today - user.last_login).days > 1:
-        user.streak = 1  # Reset streak if missed a day
-    else:
-        user.streak += 1  # Continue streak
+    # ✅ Load or reset streak data
+    streak_data = json.loads(user.streak_data) if user.streak_data else {}
 
-    # ✅ Correct Points Calculation
-    earned_points = min(user.streak * 10, 100)  # Max cap of 100 points
-    user.points += earned_points
-    user.last_login = today
+    today_name = today.strftime('%A')
 
-    # ✅ Store streak history correctly
-    streak_data = json.loads(user.streak_data or "{}")
-    weekday = today.strftime("%A")
-    streak_data[weekday] = today.isoformat()  # Store as date
-    user.streak_data = json.dumps(streak_data)  # ✅ Save streak data
-
-    db.session.commit()
-
-    return jsonify({
-        'message': f'Collected {earned_points} points!',
-        'points': user.points,
-        'streak': user.streak,
-        'streakData': streak_data  # ✅ Send updated streak data
-    })
-
-@app.route('/get_user_data', methods=['GET'])
-def get_user_data():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized - Please log in'}), 403
-
-    user = db.session.get(User, session['user_id'])  # ✅ Use `db.session.get()`
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    # ✅ Convert streakData from JSON safely
-    try:
-        streak_data = json.loads(user.streak_data) if user.streak_data else {}
-    except json.JSONDecodeError:
+    # ✅ Reset streak if over 7 days
+    if user.last_login and (today - user.last_login).days > 7:
+        user.streak = 1
+        streak_data = {today_name: True}
+    elif user.last_login and (today - user.last_login).days == 1:
+        user.streak += 1
+        streak_data[today_name] = True
+    elif user.last_login and (today - user.last_login).days > 1:
+        user.streak = 1
         streak_data = {}
 
+    # ✅ Reset streak on Monday if Sunday was collected
+    if 'Sunday' in streak_data and today_name == 'Monday':
+        streak_data = {}
+
+    # ✅ Save updates
+    user.streak_data = json.dumps(streak_data)
+    user.last_login = today
+    db.session.commit()
+
+    print(f"DEBUG: User {user.name} - Points: {user.points}, Streak: {user.streak}")
+
     return jsonify({
         'points': user.points,
         'streak': user.streak,
-        'streakData': streak_data  # ✅ Ensure streakData is always returned correctly
+        'streakData': streak_data,
+        'newUser': is_new_user  # ✅ Send this to the frontend
     })
 
 
