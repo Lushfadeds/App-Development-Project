@@ -12,7 +12,7 @@
         <div class="col-9 d-flex">
             <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid w-30" alt="Profile">
             <div class="my-auto">
-                <h1>Welcome, {{ session['role'].capitalize() }}!</h1>
+                <h1>Welcome, {{ name }}!</h1>
                 <p class="lead">Organise your business and improve your performance here!</p>
                 {% if userid %}
                     <form method="POST" action="{{ url_for('logout') }}">
@@ -31,7 +31,7 @@
                 <h5 class="card-title fw-bold pt-3 px-3">Event Revenue</h5>
                 <p class="revenue card-text px-3">+$784</p>
               </div>
-              <a href="#" class="rounded">
+              <a href="{{url_for('staff_analytics')}}" class="rounded">
                 <i class="fa-solid fa-chevron-right my-auto p-5 rounded"></i>
               </a>
             </div>
