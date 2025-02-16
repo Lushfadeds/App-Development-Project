@@ -12,16 +12,29 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-function showFlashMessage(message){
-    const flashMessage = document.getElementById("flash-message");
+function showFlashMessage(message, type){
+    let flashContainer = document.getElementById("flash-container");
+
+    // Create message div
+    let flashMessage = document.createElement("div");
+    flashMessage.className = `flash-message ${type}`;
     flashMessage.textContent = message;
-    flashMessage.classList.remove("d-none");
-    flashMessage.classList.add("show");
 
+    // Append to container
+    flashContainer.appendChild(flashMessage);
+
+    // Show message with animation
     setTimeout(() => {
-        flashMessage.classList.add("d-none");
-    }, 5000);
+        flashMessage.classList.add("show");
+    }, 100);
 
+    // Auto-remove message after 5 seconds
+    setTimeout(() => {
+        flashMessage.style.opacity = "0";
+        setTimeout(() => {
+            flashMessage.remove();
+        }, 500);
+    }, 5000);
 }
 
 
@@ -123,37 +136,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // ✅ Button click event to collect points
     collectButton.addEventListener("click", function () {
-        console.log("Collect Points Button Clicked ✅");
-
-        fetch('/collect_points', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
-                return;
-            }
-
-            console.log("✅ Points Collected:", data.points);
-
-            // Update UI
-            userPointsDisplay.textContent = `Points: ${data.points}`;
-            streakDisplay.textContent = `Streak: ${data.streak}`;
-            alert(`You collected ${data.message}!`);
-
-            // ✅ Mark today as collected
-            let todayElement = document.querySelector(`.day[data-day="${todayName}"] .circle`);
-            todayElement.classList.add("collected");
-            todayElement.style.backgroundColor = "#4CAF50"; // Green
-            todayElement.textContent = "✔";
-
-            // Refresh streak data
-            fetchUserData();
-        })
-        .catch(err => console.error("Error collecting points:", err));
-    });
+    fetch('/collect_points', { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showFlashMessage(data.error, "error");
+            return;
+        }
+        showFlashMessage(`🎉 You collected ${data.message}!`, "success");
+    })
+    .catch(err => console.error("Error collecting points:", err));
+});
 
     // ✅ Function to spin the wheel
     function spinWheel() {
