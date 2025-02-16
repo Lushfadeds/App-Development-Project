@@ -557,7 +557,8 @@ def create_rewards():
         name = request.form['name']
         points_required = request.form['points_required']
         description = request.form['description']
-        new_reward = Reward(name=name, points_required=points_required, description=description)
+        discount_value = 0
+        new_reward = Reward(name=name, points_required=points_required, description=description, discount_value=discount_value)
         db.session.add(new_reward)
         db.session.commit()
         flash("Reward created successfully!", "success")
