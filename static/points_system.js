@@ -135,7 +135,8 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchUserData();
 
     // ✅ Button click event to collect points
-    collectButton.addEventListener("click", function () {
+    // ✅ Button click event to collect points
+collectButton.addEventListener("click", function () {
     fetch('/collect_points', { method: "POST", headers: { "Content-Type": "application/json" } })
     .then(response => response.json())
     .then(data => {
@@ -143,10 +144,30 @@ document.addEventListener("DOMContentLoaded", function () {
             showFlashMessage(data.error, "error");
             return;
         }
+
+        // ✅ Show flash message for points collected
         showFlashMessage(`🎉 You collected ${data.message}!`, "success");
+
+        // ✅ Update UI immediately
+        userPointsDisplay.textContent = `Points: ${data.points}`;
+        streakDisplay.textContent = `Streak: ${data.streak}`;
+
+        // ✅ Update streak tracker UI
+        let todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        let todayElement = document.querySelector(`.day[data-day="${todayName}"] .circle`);
+
+        if (todayElement) {
+            todayElement.classList.add("collected");
+            todayElement.style.backgroundColor = "#4CAF50"; // Green
+            todayElement.textContent = "✔";
+            console.log(`✅ Updated UI: Marked ${todayName} as collected.`);
+        } else {
+            console.warn(`⚠️ Unable to find streak circle for ${todayName}`);
+        }
     })
     .catch(err => console.error("Error collecting points:", err));
 });
+
 
     // ✅ Function to spin the wheel
     function spinWheel() {
