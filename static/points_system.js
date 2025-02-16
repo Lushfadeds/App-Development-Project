@@ -1,15 +1,41 @@
 document.addEventListener("DOMContentLoaded", function () {
-        fetch("/get_user_data")
-            .then(response => response.json())
-            .then(data => {
-                if (data.newUser) {
-                    alert("🎉 Welcome to the platform! You've received 500 bonus points! 🎊");
-                }
-                document.getElementById("points").textContent = data.points;
-                document.getElementById("streak").textContent = data.streak;
-            })
-            .catch(error => console.error("Error fetching user data:", error));
+    fetch("/get_user_data")
+        .then(response => response.json())
+        .then(data => {
+            if (data.newUser) {
+                showFlashMessage("🎉 Welcome to the platform! You've received 500 bonus points! 🎊");
+            }
+            document.getElementById("points").textContent = data.points;
+            document.getElementById("streak").textContent = data.streak;
+        })
+        .catch(error => console.error("Error fetching user data:", error));
     });
+
+
+function showFlashMessage(message, type){
+    let flashContainer = document.getElementById("flash-container");
+
+    // Create message div
+    let flashMessage = document.createElement("div");
+    flashMessage.className = `flash-message ${type}`;
+    flashMessage.textContent = message;
+
+    // Append to container
+    flashContainer.appendChild(flashMessage);
+
+    // Show message with animation
+    setTimeout(() => {
+        flashMessage.classList.add("show");
+    }, 100);
+
+    // Auto-remove message after 5 seconds
+    setTimeout(() => {
+        flashMessage.style.opacity = "0";
+        setTimeout(() => {
+            flashMessage.remove();
+        }, 500);
+    }, 5000);
+}
 
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -109,38 +135,39 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchUserData();
 
     // ✅ Button click event to collect points
-    collectButton.addEventListener("click", function () {
-        console.log("Collect Points Button Clicked ✅");
+    // ✅ Button click event to collect points
+collectButton.addEventListener("click", function () {
+    fetch('/collect_points', { method: "POST", headers: { "Content-Type": "application/json" } })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showFlashMessage(data.error, "error");
+            return;
+        }
 
-        fetch('/collect_points', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(data.error);
-                return;
-            }
+        // ✅ Show flash message for points collected
+        showFlashMessage(`🎉 You collected ${data.message}!`, "success");
 
-            console.log("✅ Points Collected:", data.points);
+        // ✅ Update UI immediately
+        userPointsDisplay.textContent = `Points: ${data.points}`;
+        streakDisplay.textContent = `Streak: ${data.streak}`;
 
-            // Update UI
-            userPointsDisplay.textContent = `Points: ${data.points}`;
-            streakDisplay.textContent = `Streak: ${data.streak}`;
-            alert(`You collected ${data.message}!`);
+        // ✅ Update streak tracker UI
+        let todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        let todayElement = document.querySelector(`.day[data-day="${todayName}"] .circle`);
 
-            // ✅ Mark today as collected
-            let todayElement = document.querySelector(`.day[data-day="${todayName}"] .circle`);
+        if (todayElement) {
             todayElement.classList.add("collected");
             todayElement.style.backgroundColor = "#4CAF50"; // Green
             todayElement.textContent = "✔";
+            console.log(`✅ Updated UI: Marked ${todayName} as collected.`);
+        } else {
+            console.warn(`⚠️ Unable to find streak circle for ${todayName}`);
+        }
+    })
+    .catch(err => console.error("Error collecting points:", err));
+});
 
-            // Refresh streak data
-            fetchUserData();
-        })
-        .catch(err => console.error("Error collecting points:", err));
-    });
 
     // ✅ Function to spin the wheel
     function spinWheel() {

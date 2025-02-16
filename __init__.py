@@ -23,6 +23,7 @@ UPLOAD_FOLDER = 'static'
 app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
+print("hi")
 
 Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
@@ -1575,10 +1576,6 @@ def points_system():
     if 'user_id' not in session:
         flash("Please log in to access this page.", "danger")
         return redirect(url_for('login'))
-
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
 
     # ✅ Fetch user details
     user = User.query.get(session['user_id'])
