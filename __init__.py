@@ -593,10 +593,14 @@ user_points = 8888
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
+    if 'user_id' not in session:
+        flash("Please log in to access this page.", "danger")
+        return redirect(url_for('login'))
     if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
         profile_picture = user.profile_picture
+
 
     else:
         user_id = None
