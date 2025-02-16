@@ -21,6 +21,7 @@ UPLOAD_FOLDER = 'static'
 app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
+print("hi")
 
 Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
