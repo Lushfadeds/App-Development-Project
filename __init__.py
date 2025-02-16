@@ -395,10 +395,22 @@ def admin():
 @app.route('/delete_user/<int:id>', methods=['POST'])
 def delete_user(id):
     user = User.query.get_or_404(id)
+
+    # Delete all orders associated with this user
+    orders = Order.query.filter_by(customer_email=user.email).all()
+    for order in orders:
+        # Delete order items first to maintain integrity
+        OrderItem.query.filter_by(order_id=order.id).delete()
+        db.session.delete(order)
+
+    # Delete all redeemed rewards associated with this user
+    RedeemedReward.query.filter_by(user_id=user.id).delete()
+
+    # Finally, delete the user
     db.session.delete(user)
     db.session.commit()
-    flash('User deleted successfully!', 'success')
 
+    flash('User and all associated orders and rewards have been deleted successfully!', 'success')
     return redirect(url_for('admin'))
 
 @app.route('/admin_edit/<int:id>', methods=['GET', 'POST'])
