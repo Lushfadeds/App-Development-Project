@@ -595,6 +595,15 @@ def rewards_index():
 
 @app.route('/create_rewards', methods=['GET', 'POST'])
 def create_rewards():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     if request.method == 'POST':
         name = request.form['name']
         points_required = request.form['points_required']
@@ -605,11 +614,21 @@ def create_rewards():
         db.session.commit()
         flash("Reward created successfully!", "success")
         return redirect(url_for('rewards_index'))
-    return render_template('create_rewards.html')
+
+    return render_template('create_rewards.html', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/update_rewards/<int:id>', methods=['GET', 'POST'])
 def update_rewards(id):
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     reward = Reward.query.get_or_404(id)
     if request.method == 'POST':
         reward.name = request.form['name']
@@ -618,7 +637,7 @@ def update_rewards(id):
         db.session.commit()
         flash("Reward updated successfully!", "success")
         return redirect(url_for('rewards_index'))
-    return render_template('update_rewards.html', reward=reward)
+    return render_template('update_rewards.html', reward=reward, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/delete_rewards/<int:id>')
@@ -726,6 +745,15 @@ def inventory_page():
 
 @app.route("/inventory/edit/<int:item_id>", methods=["GET", "POST"])
 def edit_inventory_item(item_id):
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     item = InventoryItem.query.get_or_404(item_id)
 
     if request.method == "POST":
@@ -755,10 +783,19 @@ def edit_inventory_item(item_id):
         flash('Item updated successfully!')
         return redirect(url_for("inventory_page"))
 
-    return render_template("edit_item.html", item=item)
+    return render_template("edit_item.html", item=item, profile_picture=profile_picture, userid=user_id)
 
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     if request.method == 'POST':
         name = request.form.get('name')
         stock = request.form.get('stock')
@@ -799,7 +836,7 @@ def add_new_item():
         flash('Item successfully added!')
         return redirect(url_for('inventory_page'))
 
-    return render_template('add_item.html')
+    return render_template('add_item.html', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route("/shopping", methods=["GET"])
@@ -1121,6 +1158,15 @@ def get_order_details(order_id):
 
 @app.route('/order_summary/<int:order_id>')
 def order_summary(order_id):
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Retrieve shared order details
     order, items_with_inventory, total_price = get_order_details(order_id)
 
@@ -1128,11 +1174,22 @@ def order_summary(order_id):
         'order_summary.html',
         order=order,
         items_with_inventory=items_with_inventory,
-        total_price=total_price
+        total_price=total_price,
+        profile_picture=profile_picture,
+        userid=user_id
     )
 
 @app.route("/staff_order_summary/<int:order_id>", methods=["GET"])
 def staff_order_summary(order_id):
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Retrieve shared order details
     order, items_with_inventory, total_price = get_order_details(order_id)
 
@@ -1144,7 +1201,9 @@ def staff_order_summary(order_id):
         order=order,
         items_with_inventory=items_with_inventory,
         total_price=total_price,
-        staff_notes=staff_notes  # Pass additional data for staff
+        staff_notes=staff_notes,  # Pass additional data for staff
+        profile_picture=profile_picture,
+        userid=user_id
     )
 
 @app.route("/order/<int:order_id>/edit_item", methods=["POST"])
@@ -1294,12 +1353,6 @@ def logout():
     # Redirect to login page
     return redirect(url_for('login'))
 
-
-@app.route('/forgot_password')
-def forgot_password():
-    # Implement forgot password logic here
-    return 'Forgot Password Page...'
-
 def is_valid_email(email):
     if "@" in email and "." in email.split("@")[-1]:
         return True
@@ -1319,6 +1372,15 @@ def contact_us_page():
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     feedback_type = request.form.get('feedback_type')
     full_name = request.form.get('full_name')
     email = request.form.get('email')
@@ -1346,7 +1408,7 @@ def submit_contact_us():
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
-    return redirect('/contact_us')
+    return redirect('/contact_us', profile_picture=profile_picture, userid=user_id)
 # Route to view feedback and replies
 @app.route('/contact_us_data')
 def contact_us_data():
