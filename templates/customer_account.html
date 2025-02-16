@@ -10,7 +10,12 @@
             <img src="{{ url_for('static', filename=profile_picture)}}" class="pfp rounded-circle m-5 img-fluid" alt="Profile">
             <div class="my-auto">
                 <h1>Welcome, {{ name }}!</h1>
-                <p class="lead">Organise your business and improve your performance here!</p>
+                <p class="lead">Checkout your orders and earn rewards!</p>
+                 {% if userid %}
+                    <form method="POST" action="{{ url_for('logout') }}">
+                        <button type="submit" class="btn fw-bold">Log out</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
       </div>
@@ -71,7 +76,7 @@
 
         <!-- ✅ Pending Orders Section (View-Only for Customers) -->
         <div class="orders mt-5">
-          <h2>Your Pending Orders</h2>
+          <h2>Your  Orders</h2>
           {% if pending_orders %}
           <table class="table">
             <thead>

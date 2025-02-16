@@ -12,6 +12,10 @@ from dash import dcc, html
 import pandas as pd
 import plotly.express as px
 import requests
+from datetime import datetime, date
+import random
+import json  # ✅ Add this at the top of your script
+
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -19,7 +23,7 @@ UPLOAD_FOLDER = 'static'
 app.config['UPLOAD_FOLDER'] = 'static'
 inventory_manager = Inventory()
 items = []
-print('gff')
+
 Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
 
@@ -115,12 +119,17 @@ class InventoryItem(db.Model):
 class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False)  # no two users can have the same email
-    password_hash = db.Column(db.String(128), nullable=False)  # stores hashed password for the user
-    contact_number = db.Column(db.String(15), nullable=False)  # Phone number
-    role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
+    name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    contact_number = db.Column(db.String(15), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
     profile_picture = db.Column(db.String(255), nullable=False)
+    points = db.Column(db.Integer, default=0)
+    streak = db.Column(db.Integer, default=0)
+    last_login = db.Column(db.Date, nullable=True, default=None)
+    streak_data = db.Column(db.Text, default=json.dumps({}))  # ✅ Empty JSON by default
+    last_wheel_spin = db.Column(db.Date, nullable=True, default=None)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -189,7 +198,6 @@ with app.app_context():
 
     if not User.query.filter_by(role='admin').first():
         admin_user = User(
-            id=1,
             name='admin',
             email='admin@mamaks.com',
             contact_number='11111111',
@@ -367,12 +375,17 @@ def get_layout():
 
 @app.route('/staff_analytics')
 def staff_analytics():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
     max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
     stats = Stats.query.all()
     for i in stats:
         print(i.day)
 
-    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry)
+    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/add_graph', methods=['POST'])
@@ -404,7 +417,6 @@ def add_graph():
     db.session.commit()
     flash('Statistics Added Successfully!')
     return redirect(url_for('analytics'))
-
 
 @app.route('/analytics')
 def analytics():
@@ -449,24 +461,53 @@ def delete(id):
 
 @app.route('/aboutus')
 def aboutus():
-    return render_template('aboutus.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('aboutus.html', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/admin')
 def admin():
+    if 'role' in session and session['role'] == 'admin':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     print(request.path)
-    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email,
-                                     User.contact_number).all()
-    return render_template('admin.html', user=users)
+    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
+    return render_template('admin.html', user=users, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/delete_user/<int:id>', methods=['POST'])
 def delete_user(id):
     user = User.query.get_or_404(id)
+
+    # Delete all orders associated with this user
+    orders = Order.query.filter_by(customer_email=user.email).all()
+    for order in orders:
+        # Delete order items first to maintain integrity
+        OrderItem.query.filter_by(order_id=order.id).delete()
+        db.session.delete(order)
+
+    # Delete all redeemed rewards associated with this user
+    RedeemedReward.query.filter_by(user_id=user.id).delete()
+
+    # Finally, delete the user
     db.session.delete(user)
     db.session.commit()
-    flash('User deleted successfully!', 'success')
 
+    flash('User and all associated orders and rewards have been deleted successfully!', 'success')
     return redirect(url_for('admin'))
 
 
@@ -550,6 +591,17 @@ def admin_add():
 
 @app.route('/')
 def home():
+    if 'role' in session:
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+        user_role = session['role']  # Get role from session
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+        user_role = 'public'
+
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
     ]
@@ -557,8 +609,7 @@ def home():
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto,
-                           team=team, community=community)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community, profile_picture=profile_picture, userid=user_id, user_role=user_role )
 
 
 def get_lowest_available_id():
@@ -576,26 +627,29 @@ def register():
         contact_number = request.form['contact_number']
         profile_picture = request.files['profile']
 
-        # Secure the filename and save it in the 'pfp' folder
+        # Secure the filename and save it
         filename = secure_filename(profile_picture.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         profile_picture.save(filepath)
 
-        # Check if the email already exists
+        # **Force New Users to Start Fresh**
+        session.clear()  # ✅ Clears any old session data
+
+        # **Check if email is already registered**
         if User.query.filter_by(email=email).first():
             flash('Email is already registered.')
             return redirect(url_for('register'))
 
-        new_id = get_lowest_available_id()
-
-        # Create a new user
+        # **Create a new user with a fresh streak & login**
         new_user = User(
-            id=new_id,
             name=name,
             email=email,
             contact_number=contact_number,
-            role='staff',
+            role='Customer',
             profile_picture=filename,
+            streak=0,  # ✅ Start fresh
+            last_login=None,  # ✅ Ensure last login is empty
+            streak_data=json.dumps({})  # ✅ Ensure no previous streaks
         )
 
         new_user.set_password(password)
@@ -610,8 +664,17 @@ def register():
 
 @app.route('/rewards_index')
 def rewards_index():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     rewards = Reward.query.all()
-    return render_template('rewards_index.html', rewards=rewards, active_page='rewards')
+    return render_template('rewards_index.html', rewards=rewards, active_page='rewards', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/create_rewards', methods=['GET', 'POST'])
@@ -620,7 +683,8 @@ def create_rewards():
         name = request.form['name']
         points_required = request.form['points_required']
         description = request.form['description']
-        new_reward = Reward(name=name, points_required=points_required, description=description)
+        discount_value = 0
+        new_reward = Reward(name=name, points_required=points_required, description=description, discount_value=discount_value)
         db.session.add(new_reward)
         db.session.commit()
         flash("Reward created successfully!", "success")
@@ -650,42 +714,53 @@ def delete_rewards(id):
     return redirect(url_for('rewards_index'))
 
 
-user_points = 8888
+
 
 
 @app.route('/rewards', methods=['GET', 'POST'])
 def rewards_page():
-    global user_points
+    if 'user_id' not in session:
+        flash("Please log in to access this page.", "danger")
+        return redirect(url_for('login'))
+
+    # ✅ Keep your role check and fetch user details
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+        actual_user_points = user.points  # ✅ Fetch actual user points
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+        actual_user_points = 0  # Default if no user
+
     message = None
 
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
         reward = Reward.query.get(reward_id)
 
-        if reward and user_points >= reward.points_required:
-            user_points -= reward.points_required  # Deduct points
+        if reward and actual_user_points >= reward.points_required:
+            user.points -= reward.points_required  # Deduct points
+            db.session.commit()  # ✅ Save updated points
 
             # ✅ Correctly determine discount value
-            discount_value = 0
-            if "Free Shipping" in reward.name:
-                discount_value = 13.50  # Free shipping discount
-            elif "20% Discount" in reward.name:
-                discount_value = -1  # Placeholder for percentage-based discount (to be applied at checkout)
-            else:
-                discount_value = float(reward.name.replace("$", "").split(" ")[0])  # Extract value from reward name
+            discount_value = reward.discount_value
+            if reward.name == "20% Discount":
+                discount_value = -1  # Placeholder for percentage-based discount
 
-            # ✅ Store redeemed reward in `redeemed_rewards.db` with correct discount
+            # ✅ Store redeemed reward
             redeemed_reward = RedeemedReward(
-                user_id=session['user_id'],
+                user_id=user_id,
                 reward_name=reward.name,
                 points_used=reward.points_required,
-                discount_value=discount_value,  # Store actual discount
+                discount_value=discount_value,
                 status="Unused"
             )
             db.session.add(redeemed_reward)
             db.session.commit()
 
-            message = f"Successfully redeemed {reward.name}! Please apply this discount at checkout."
+            message = f"Successfully redeemed {reward.name}! Apply the discount at checkout."
         else:
             message = "You don't have enough points to redeem this reward."
 
@@ -694,13 +769,25 @@ def rewards_page():
     return render_template(
         'rewards.html',
         rewards=rewards,
-        user_points=user_points,
-        message=message
+        user_points=actual_user_points,  # ✅ Use actual user points
+        message=message,
+        profile_picture=profile_picture,
+        userid=user_id
     )
+
 
 
 @app.route("/inventory", methods=["GET"])
 def inventory_page():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     category = request.args.get("category", "all")
     search_query = request.args.get("search", "")
     filter_option = request.args.get("filter", "")
@@ -718,7 +805,7 @@ def inventory_page():
         query = query.filter(InventoryItem.stock == 0)
 
     inventory_items = query.all()
-    return render_template("inventory.html", items=inventory_items)
+    return render_template("inventory.html", items=inventory_items, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route("/inventory/edit/<int:item_id>", methods=["GET", "POST"])
@@ -802,6 +889,15 @@ def add_new_item():
 
 @app.route("/shopping", methods=["GET"])
 def shopping_page():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Redirect staff users to staff dashboard
     if 'role' in session and session['role'] == 'staff':
         flash("Staff members cannot access the shopping page.", "warning")
@@ -844,8 +940,9 @@ def shopping_page():
         items=items,  # Only in-stock items are displayed
         cart=cart,
         cart_count=cart_count,
-        total_price=total_price
-    )
+        total_price=total_price,
+        profile_picture=profile_picture,
+        userid=user_id    )
 
 
 @app.route("/add_to_cart", methods=["POST"])
@@ -972,7 +1069,7 @@ def validate_expiry_date(expiry_date):
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    if 'role' not in session or session['role'] != 'customer':
+    if 'role' not in session or session['role'] != 'Customer':
         flash("Please create an account.", "danger")
         return redirect(url_for('staff_dashboard'))
 
@@ -1318,9 +1415,12 @@ def staff_dashboard():
 
 @app.route('/customer_account')
 def customer_account():
-    if 'role' in session and session['role'] == 'customer':
+    if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
+
+        # ✅ Fetch actual user points
+        actual_user_points = user.points
 
         # ✅ Fetch only pending orders for this customer
         pending_orders = Order.query.filter_by(customer_email=user.email).all()
@@ -1332,9 +1432,9 @@ def customer_account():
             'customer_account.html',
             profile_picture=user.profile_picture,
             name=user.name,
-            user_points=user_points,
-            redeemed_rewards=redeemed_rewards,  # ✅ Pass unused rewards
-            pending_orders=pending_orders  # ✅ Pass only pending orders
+            user_points=actual_user_points,  # ✅ Use actual points instead of static value
+            redeemed_rewards=redeemed_rewards,
+            pending_orders=pending_orders
         )
     else:
         flash('Please log in to access your account.', 'warning')
@@ -1347,9 +1447,8 @@ def login():
     if 'role' in session:
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
-        elif session['role'] == 'customer':
-            return redirect(
-                url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+        elif session['role'] == 'Customer':
+            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
         elif session['role'] == 'admin':
             return redirect(url_for('admin'))
 
@@ -1367,7 +1466,7 @@ def login():
             # Redirect based on role
             if user.role == 'staff':
                 return redirect(url_for('staff_dashboard'))
-            elif user.role == 'customer':
+            elif user.role == 'Customer':
                 return redirect(url_for('customer_account'))
             elif user.role == 'admin':
                 return redirect(url_for('admin'))
@@ -1405,7 +1504,15 @@ def is_valid_email(email):
 
 @app.route('/contact_us')
 def contact_us_page():
-    return render_template('contact_us.html')
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    return render_template('contact_us.html', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/submit_contact_us', methods=['POST'])
@@ -1424,46 +1531,120 @@ def submit_contact_us():
     elif not message or len(message) < 10:
         flash('Message must be at least 10 characters long.', 'danger')
     else:
+        # Save feedback to the database
+        feedback = Feedback(
+            feedback_type=feedback_type,
+            full_name=full_name,
+            email=email,
+            message=message,
+            replied=False
+        )
+        db.session.add(feedback)
+        db.session.commit()
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
     return redirect('/contact_us')
+# Route to view feedback and replies
+@app.route('/contact_us_data')
+def contact_us_data():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
+    feedback_list = Feedback.query.all()
+    reply_list = Reply.query.all()
+    return render_template('contact_us_data.html', feedback_list=feedback_list, reply_list=reply_list, profile_picture=profile_picture, userid=user_id)
+
+# Route to reply to feedback
+@app.route('/reply_to_feedback', methods=['POST'])
+def reply_to_feedback():
+    email = request.form.get('email')
+    reply_message = request.form.get('reply_message')
+
+    # Update the feedback to mark it as replied
+    feedback = Feedback.query.filter_by(email=email, replied=False).first()
+    if feedback:
+        feedback.replied = True
+        db.session.add(feedback)
+        db.session.commit()
+
+        # Save the reply to the database
+        reply = Reply(email=email, reply_message=reply_message)
+        db.session.add(reply)
+        db.session.commit()
+        flash('Reply sent successfully!', 'success')
+
+    return redirect('/contact_us_data')
 
 
 @app.route('/points_system')
 def points_system():
-    # Initialize session variables if not set
-    if 'points' not in session:
-        session['points'] = 0
-    if 'last_login' not in session:
-        session['last_login'] = None
-    if 'streak' not in session:
-        session['streak'] = 0
+    if 'user_id' not in session:
+        flash("Please log in to access this page.", "danger")
+        return redirect(url_for('login'))
 
-    # Check if the user logs in on a new day
-    today = datetime.now().date()
-    last_login = session['last_login']
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
 
-    if last_login is None or last_login != str(today):
-        session['last_login'] = str(today)
-        session['streak'] += 1
-        session['points'] += 2  # Add points for daily login
+    # ✅ Fetch user details
+    user = User.query.get(session['user_id'])
+    if not user or user.role.lower() != "customer":
+        flash("Only customers can access this page.", "danger")
+        return redirect(url_for('customer_account' if user.role == "customer" else 'staff_dashboard'))
 
-    return render_template('points_system.html', points=session['points'], streak=session['streak'])
+    # ✅ Fetch actual user points & streak
+    actual_user_points = user.points
+    actual_streak = user.streak
+
+    # ✅ Profile Picture Handling
+    profile_picture = user.profile_picture if user.profile_picture else "unknown.png"
+
+    return render_template(
+        'points_system.html',
+        points=actual_user_points,  # ✅ Use actual points from the database
+        streak=actual_streak,  # ✅ Use actual streak from the database
+        profile_picture=profile_picture,
+        userid=user.id
+    )
 
 
 @app.route('/spin', methods=['POST'])
 def spin():
-    import random
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized - Please log in'}), 403
 
-    # Spin the wheel and get random points
-    outcomes = [2, 3, 5, 10, 0]  # Possible outcomes on the wheel
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role != 'Customer':
+        return jsonify({'error': 'Only Customers can spin the wheel'}), 403
+
+    today = datetime.utcnow().date()
+
+    # ✅ Check if the user has already spun the wheel today
+    if user.last_wheel_spin == today:
+        return jsonify({'error': 'You have already spun the wheel today', 'points': user.points})
+
+    # ✅ If not, allow the user to spin
+    outcomes = [2, 3, 5, 10, 0]  # Possible point rewards
     result = random.choice(outcomes)
 
-    # Update points in session
-    session['points'] += result
+    user.points += result
+    user.last_wheel_spin = today  # ✅ Store the spin date in the database
+    db.session.commit()
 
-    return {'result': result, 'points': session['points']}
+    return jsonify({
+        'message': f'You won {result} points!',
+        'result': result,
+        'points': user.points
+    })
 
 
 @app.route('/download_receipt/<int:order_id>')
@@ -1605,6 +1786,129 @@ def use_reward(reward_id):
     flash(f"{reward.reward_name} applied! Discount of ${session['applied_discount']} will be deducted at checkout.",
           "success")
     return redirect(url_for('checkout'))
+
+
+@app.route('/collect_points', methods=['POST'])
+def collect_points():
+    if 'user_id' not in session:
+        print("❌ User not logged in.")
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        print("❌ User not found.")
+        return jsonify({'error': 'User not found'}), 404
+
+    today = datetime.utcnow().date()
+    today_name = today.strftime('%A')
+
+    # Load user's existing streak data
+    streak_data = json.loads(user.streak_data) if user.streak_data else {}
+
+    # **Check if the user already collected points today**
+    if today_name in streak_data:
+        print(f"⚠️ {user.name} already collected points today.")
+        return jsonify({'error': 'Points already collected today'}), 400
+
+    # **NEW: Handle Streak Logic Correctly**
+    if user.last_login is None:
+        print(f"✅ First-time login for {user.name}. Setting streak to 1.")
+        user.streak = 1  # ✅ Ensure streak starts at 1
+    else:
+        days_since_last_login = (today - user.last_login).days
+
+        if days_since_last_login == 1:
+            # ✅ Increase streak if logged in the next day
+            user.streak += 1
+        elif days_since_last_login > 1:
+            # ✅ Reset streak if a day is missed
+            user.streak = 1
+            streak_data = {}  # Clear past streak data
+
+        # ✅ If a new week starts, reset the streak
+        if 'Sunday' in streak_data and today_name == 'Monday':
+            streak_data = {}
+            user.streak = 1
+
+    # ✅ Calculate Points Earned Based on Streak
+    points_earned = min(user.streak * 10, 100)  # ✅ Cap at 100 points per day
+    user.points += points_earned
+
+    # ✅ Mark Today as Collected
+    streak_data[today_name] = True
+    user.streak_data = json.dumps(streak_data)
+
+    # ✅ Update Last Login & Ensure Streak is Saved
+    user.last_login = today
+
+    try:
+        db.session.commit()  # ✅ Force database update
+        print(f"✅ Streak Updated for {user.name}: {user.streak}, Last Login: {user.last_login}, Points Earned: {points_earned}, Total Points: {user.points}")
+    except Exception as e:
+        db.session.rollback()  # ❌ Rollback in case of failure
+        print(f"❌ Error updating streak: {e}")
+
+    return jsonify({
+        'points': user.points,
+        'streak': user.streak,
+        'message': f'+{points_earned} points',
+        'streakData': streak_data
+    })
+
+
+@app.route('/get_user_data')
+def get_user_data():
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    today = datetime.utcnow().date()
+    is_new_user = False  # ✅ Flag to track first login
+
+    # ✅ First-Time User: Award 500 Points
+    if user.last_login is None:
+        print(f"🎉 First-Time User Detected: {user.name} - Awarding 500 Points!")
+        user.streak = 1  # ✅ Start fresh streak
+        user.points += 500  # ✅ Award 500 points
+        user.streak_data = json.dumps({})
+        is_new_user = True  # ✅ Mark user as new
+
+    # ✅ Load or reset streak data
+    streak_data = json.loads(user.streak_data) if user.streak_data else {}
+
+    today_name = today.strftime('%A')
+
+    # ✅ Reset streak if over 7 days
+    if user.last_login and (today - user.last_login).days > 7:
+        user.streak = 1
+        streak_data = {today_name: True}
+    elif user.last_login and (today - user.last_login).days == 1:
+        user.streak += 1
+        streak_data[today_name] = True
+    elif user.last_login and (today - user.last_login).days > 1:
+        user.streak = 1
+        streak_data = {}
+
+    # ✅ Reset streak on Monday if Sunday was collected
+    if 'Sunday' in streak_data and today_name == 'Monday':
+        streak_data = {}
+
+    # ✅ Save updates
+    user.streak_data = json.dumps(streak_data)
+    user.last_login = today
+    db.session.commit()
+
+    print(f"DEBUG: User {user.name} - Points: {user.points}, Streak: {user.streak}")
+
+    return jsonify({
+        'points': user.points,
+        'streak': user.streak,
+        'streakData': streak_data,
+        'newUser': is_new_user  # ✅ Send this to the frontend
+    })
 
 
 if __name__ == '__main__':

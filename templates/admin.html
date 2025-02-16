@@ -98,7 +98,11 @@
     <div class="col-10 mx-auto my-5">
         <h1>Welcome back, Admin!</h1>
         <p class="lead fs-6">Edit, Delete, Create Accounts Here!</p>
-
+        {% if userid %}
+            <form method="POST" action="{{ url_for('logout') }}">
+                <button type="submit" class="btn logout-btn fw-bold">Log out</button>
+            </form>
+        {% endif %}
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for msg in messages %}
@@ -150,7 +154,7 @@
             <tbody>
                 {% for i in user %}
                 <tr class="align-middle">
-                    <td><img src="{{ url_for('static', filename=i.profile_picture) }}">{{ i.name }}</td>
+                    <td><img class='img-profile' src="{{ url_for('static', filename=i.profile_picture) }}">{{ i.name }}</td>
                     <td>{{ i.email }}</td>
                     <td>{{ i.contact_number }}</td>
                     <td>{{ i.role }}</td>
