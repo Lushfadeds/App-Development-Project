@@ -92,17 +92,17 @@
     </div>
   </div>
 </div>
-{% if userid %}
-                    <form method="POST" action="{{ url_for('logout') }}">
-                        <button type="submit" class="btn fw-bold">Log out</button>
-                    </form>
-                {% endif %}
+
 <div class="con-ctm container-fluid px-0">
 
     <div class="col-10 mx-auto my-5">
         <h1>Welcome back, Admin!</h1>
         <p class="lead fs-6">Edit, Delete, Create Accounts Here!</p>
-
+        {% if userid %}
+                    <form method="POST" action="{{ url_for('logout') }}">
+                        <button type="submit" class="btn fw-bold">Log out</button>
+                    </form>
+                {% endif %}
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for msg in messages %}

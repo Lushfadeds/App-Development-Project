@@ -601,7 +601,6 @@ def delete_rewards(id):
 
 
 
-user_points = 8888
 
 
 @app.route('/rewards', methods=['GET', 'POST'])
@@ -609,47 +608,45 @@ def rewards_page():
     if 'user_id' not in session:
         flash("Please log in to access this page.", "danger")
         return redirect(url_for('login'))
+
+    # ✅ Keep your role check and fetch user details
     if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
         profile_picture = user.profile_picture
-
-
+        actual_user_points = user.points  # ✅ Fetch actual user points
     else:
         user_id = None
         profile_picture = "unknown.png"
+        actual_user_points = 0  # Default if no user
 
-    global user_points
     message = None
 
     if request.method == 'POST':
         reward_id = request.form.get('reward_id')
         reward = Reward.query.get(reward_id)
 
-        if reward and user_points >= reward.points_required:
-            user_points -= reward.points_required  # Deduct points
+        if reward and actual_user_points >= reward.points_required:
+            user.points -= reward.points_required  # Deduct points
+            db.session.commit()  # ✅ Save updated points
 
             # ✅ Correctly determine discount value
-            discount_value = 0
-            if "Free Shipping" in reward.name:
-                discount_value = 13.50  # Free shipping discount
-            elif "20% Discount" in reward.name:
-                discount_value = -1  # Placeholder for percentage-based discount (to be applied at checkout)
-            else:
-                discount_value = float(reward.name.replace("$", "").split(" ")[0])  # Extract value from reward name
+            discount_value = reward.discount_value
+            if reward.name == "20% Discount":
+                discount_value = -1  # Placeholder for percentage-based discount
 
-            # ✅ Store redeemed reward in `redeemed_rewards.db` with correct discount
+            # ✅ Store redeemed reward
             redeemed_reward = RedeemedReward(
-                user_id=session['user_id'],
+                user_id=user_id,
                 reward_name=reward.name,
                 points_used=reward.points_required,
-                discount_value=discount_value,  # Store actual discount
+                discount_value=discount_value,
                 status="Unused"
             )
             db.session.add(redeemed_reward)
             db.session.commit()
 
-            message = f"Successfully redeemed {reward.name}! Please apply this discount at checkout."
+            message = f"Successfully redeemed {reward.name}! Apply the discount at checkout."
         else:
             message = "You don't have enough points to redeem this reward."
 
@@ -658,11 +655,12 @@ def rewards_page():
     return render_template(
         'rewards.html',
         rewards=rewards,
-        user_points=user_points,
+        user_points=actual_user_points,  # ✅ Use actual user points
         message=message,
-    profile_picture = profile_picture,
-    userid = user_id
+        profile_picture=profile_picture,
+        userid=user_id
     )
+
 
 
 @app.route("/inventory", methods=["GET"])
@@ -1189,6 +1187,9 @@ def customer_account():
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
 
+        # ✅ Fetch actual user points
+        actual_user_points = user.points
+
         # ✅ Fetch only pending orders for this customer
         pending_orders = Order.query.filter_by(customer_email=user.email).all()
 
@@ -1199,13 +1200,14 @@ def customer_account():
             'customer_account.html',
             profile_picture=user.profile_picture,
             name=user.name,
-            user_points=user_points,
-            redeemed_rewards=redeemed_rewards,  # ✅ Pass unused rewards
-            pending_orders=pending_orders  # ✅ Pass only pending orders
+            user_points=actual_user_points,  # ✅ Use actual points instead of static value
+            redeemed_rewards=redeemed_rewards,
+            pending_orders=pending_orders
         )
     else:
         flash('Please log in to access your account.', 'warning')
         return redirect(url_for('login'))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1336,29 +1338,33 @@ def reply_to_feedback():
 
 @app.route('/points_system')
 def points_system():
+    if 'user_id' not in session:
+        flash("Please log in to access this page.", "danger")
+        return redirect(url_for('login'))
     if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
         profile_picture = user.profile_picture
-
-    else:
-        user_id = None
-        profile_picture = "unknown.png"
-
-    # Ensure user is logged in
-    if 'user_id' not in session:
-        flash("Please log in to access this page.", "danger")
-        return redirect(url_for('login'))
-
-    # Fetch the user from the database
+    # ✅ Fetch user details
     user = User.query.get(session['user_id'])
-
-    # Ensure user exists and is a customer
     if not user or user.role.lower() != "customer":
         flash("Only customers can access this page.", "danger")
         return redirect(url_for('customer_account' if user.role == "customer" else 'staff_dashboard'))
 
-    return render_template('points_system.html', points=session['points'], streak=session['streak'], profile_picture=profile_picture, userid= user_id)
+    # ✅ Fetch actual user points & streak
+    actual_user_points = user.points
+    actual_streak = user.streak
+
+    # ✅ Profile Picture Handling
+    profile_picture = user.profile_picture if user.profile_picture else "unknown.png"
+
+    return render_template(
+        'points_system.html',
+        points=actual_user_points,  # ✅ Use actual points from the database
+        streak=actual_streak,  # ✅ Use actual streak from the database
+        profile_picture=profile_picture,
+        userid=user.id
+    )
 
 @app.route('/spin', methods=['POST'])
 def spin():
