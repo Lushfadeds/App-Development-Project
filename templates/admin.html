@@ -154,7 +154,7 @@
             <tbody>
                 {% for i in user %}
                 <tr class="align-middle">
-                    <td><img src="{{ url_for('static', filename=i.profile_picture) }}">{{ i.name }}</td>
+                    <td><img class='img-profile' src="{{ url_for('static', filename=i.profile_picture) }}">{{ i.name }}</td>
                     <td>{{ i.email }}</td>
                     <td>{{ i.contact_number }}</td>
                     <td>{{ i.role }}</td>

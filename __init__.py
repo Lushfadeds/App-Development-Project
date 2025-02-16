@@ -394,9 +394,18 @@ def aboutus():
 
 @app.route('/admin')
 def admin():
+    if 'role' in session and session['role'] == 'admin':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     print(request.path)
     users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
-    return render_template('admin.html', user=users)
+    return render_template('admin.html', user=users, profile_picture=profile_picture, userid=user_id)
 
 @app.route('/delete_user/<int:id>', methods=['POST'])
 def delete_user(id):
@@ -506,6 +515,7 @@ def home():
     else:
         user_id = None
         profile_picture = "unknown.png"
+        user_role = 'public'
 
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
@@ -1378,10 +1388,11 @@ def points_system():
     if 'user_id' not in session:
         flash("Please log in to access this page.", "danger")
         return redirect(url_for('login'))
+
     if 'role' in session and session['role'] == 'Customer':
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
-        profile_picture = user.profile_picture
+
     # ✅ Fetch user details
     user = User.query.get(session['user_id'])
     if not user or user.role.lower() != "customer":
