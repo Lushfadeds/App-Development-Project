@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
+import json
 from datetime import datetime
 import re
 import os
@@ -10,7 +11,7 @@ import dash
 from dash import dcc, html
 import pandas as pd
 import plotly.express as px
-
+import requests
 
 app = Flask(__name__)
 app.secret_key = 'App_Dev'
@@ -22,7 +23,7 @@ items = []
 Allowed_Extensions = {'png', 'jpg', 'jpeg'}
 
 
-def allowed_file(filename):  #Split the file from the dot Eg: Image1.png
+def allowed_file(filename):  # Split the file from the dot Eg: Image1.png
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Allowed_Extensions
 
 
@@ -41,7 +42,20 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# Define Feedback model
+class AnalyticsLayout(db.Model):
+    __bind_key__ = 'statistics'  # Using the same database as Stats
+    id = db.Column(db.Integer, primary_key=True)
+    layout_data = db.Column(db.JSON, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f'<AnalyticsLayout {self.id}>'
+
+    # Define Feedback model
+
+
 class Feedback(db.Model):
     __bind_key__ = 'feedback'
     id = db.Column(db.Integer, primary_key=True)
@@ -51,6 +65,7 @@ class Feedback(db.Model):
     message = db.Column(db.Text, nullable=False)
     replied = db.Column(db.Boolean, default=False)
 
+
 # Define Reply model
 class Reply(db.Model):
     __bind_key__ = 'replies'
@@ -58,6 +73,7 @@ class Reply(db.Model):
     email = db.Column(db.String(100), nullable=False)
     reply_message = db.Column(db.Text, nullable=False)
     date_replied = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Reward(db.Model):
     __bind_key__ = 'rewards'
@@ -71,7 +87,6 @@ class Reward(db.Model):
     # , a required name, the points_required to claim the reward, and an optional description.
 
 
-
 class Stats(db.Model):
     __bind_key__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
@@ -81,11 +96,10 @@ class Stats(db.Model):
     daily_customers = db.Column(db.Integer, nullable=False)
     daily_unique_customers = db.Column(db.Integer, nullable=False)
     money_spent_customer = db.Column(db.Integer, nullable=False)
+    expenses = db.Column(db.Integer, nullable=False)
+    labor_costs = db.Column(db.Float, nullable=False)
+    energy_costs = db.Column(db.Float, nullable=False)
 
-
-with app.app_context():
-    if not os.path.exists('rewards.db'):
-        db.create_all()
 
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
@@ -102,15 +116,16 @@ class User(db.Model):
     __bind_key__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)  # Full name
-    email = db.Column(db.String(120), unique=True, nullable=False) # no two users can have the same email
-    password_hash = db.Column(db.String(128), nullable=False) # stores hashed password for the user
+    email = db.Column(db.String(120), unique=True, nullable=False)  # no two users can have the same email
+    password_hash = db.Column(db.String(128), nullable=False)  # stores hashed password for the user
     contact_number = db.Column(db.String(15), nullable=False)  # Phone number
     role = db.Column(db.String(20), nullable=False)  # Role name, e.g., "staff" or "customer"
     profile_picture = db.Column(db.String(255), nullable=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-    # hashes the user’s password using generate_password_hash and stores it in the password_hash field.
+
+    # hashes the user's password using generate_password_hash and stores it in the password_hash field.
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -144,8 +159,6 @@ class Order(db.Model):
     status = db.Column(db.String(20), default="Pending")
 
 
-
-
 class OrderItem(db.Model):
     __bind_key__ = 'orders'
     __tablename__ = 'order_item'
@@ -159,9 +172,8 @@ class OrderItem(db.Model):
     order = db.relationship('Order', backref='order_items')
 
 
-
 class RedeemedReward(db.Model):
-    __bind_key__ = 'redeemed_rewards'  #  Ensure correct DB binding
+    __bind_key__ = 'redeemed_rewards'  # Ensure correct DB binding
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)  # Store user ID
     reward_name = db.Column(db.String(100), nullable=False)
@@ -170,9 +182,9 @@ class RedeemedReward(db.Model):
     redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(10), default="Unused")  # New field to track usage
 
+
 # Create the database table
 with app.app_context():
-
     db.create_all()
 
     if not User.query.filter_by(role='admin').first():
@@ -288,6 +300,71 @@ def create_dash_app(app):
 create_dash_app(app)
 
 
+@app.route('/save_layout', methods=['POST'])
+def save_layout():
+    try:
+        layout_data = request.json
+        user_id = session.get('user_id')
+
+        if not user_id:
+            return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+
+        # Get existing layout or create new one
+        layout = AnalyticsLayout.query.filter_by(user_id=user_id).first()
+        if not layout:
+            layout = AnalyticsLayout(user_id=user_id)
+
+        layout.layout_data = layout_data
+        layout.updated_at = datetime.utcnow()
+
+        db.session.add(layout)
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'message': 'Layout saved successfully'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error saving layout: {str(e)}")  # For debugging
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/get_layout', methods=['GET'])
+def get_layout():
+    try:
+        user_id = session.get('user_id')
+
+        if not user_id:
+            return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+
+        # Get latest stats
+        latest_stats = Stats.query.order_by(Stats.day.desc()).first()
+
+        # Get saved layout
+        layout = AnalyticsLayout.query.filter_by(user_id=user_id).first()
+
+        if layout and layout.layout_data:
+            # Update dynamic content in the layout
+            layout_data = layout.layout_data
+            for row in layout_data:
+                for card in row['cards']:
+                    if card['type'] == "Today's Earnings":
+                        card[
+                            'content'] = f'<div class="fw-bold fs-1">${latest_stats.daily_sale if latest_stats else 0}</div>'
+                    elif card['type'] == "Products Sold":
+                        card[
+                            'content'] = f'<div class="fw-bold fs-1">{latest_stats.products_sold if latest_stats else 0}</div>'
+                    elif card['type'] == "New Customers":
+                        card[
+                            'content'] = f'<div class="fw-bold fs-1">{latest_stats.daily_customers if latest_stats else 0}</div>'
+                    # Add other dynamic content updates as needed
+
+            return jsonify({'status': 'success', 'layout': layout_data})
+
+        return jsonify({'status': 'success', 'layout': None})
+    except Exception as e:
+        print(f"Error getting layout: {str(e)}")  # For debugging
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/staff_analytics')
 def staff_analytics():
     max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
@@ -307,7 +384,7 @@ def add_graph():
     unique_customers_today = request.form['unique_customers_today']
     money_spent_customer = request.form['money_spent_customer']
 
-    #new_user = session['user_id']
+    # new_user = session['user_id']
 
     max_role_id = db.session.query(db.func.max(Stats.id)).scalar() or 0
     new_role_id = max_role_id + 1
@@ -328,6 +405,7 @@ def add_graph():
     flash('Statistics Added Successfully!')
     return redirect(url_for('analytics'))
 
+
 @app.route('/analytics')
 def analytics():
     graph = Stats.query.all()
@@ -335,8 +413,9 @@ def analytics():
         print(i)
     return render_template('analytics.html', graph_data=graph)
 
+
 @app.route('/update_analytics/<int:id>', methods=['GET', 'POST'])
-def update(id:int):
+def update(id: int):
     stat = Stats.query.get_or_404(id)
     if request.method == "POST":
         stat.products_sold = request.form['products_sold']
@@ -357,6 +436,7 @@ def update(id:int):
     graph = Stats.query.all()
     return render_template('update_analytics.html', graph_data=graph, stat=stat)
 
+
 @app.route('/delete_analytics/<int:id>', methods=['POST'])
 def delete(id):
     stat = Stats.query.get_or_404(id)
@@ -371,11 +451,14 @@ def delete(id):
 def aboutus():
     return render_template('aboutus.html')
 
+
 @app.route('/admin')
 def admin():
     print(request.path)
-    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email, User.contact_number).all()
+    users = User.query.with_entities(User.id, User.profile_picture, User.name, User.role, User.email,
+                                     User.contact_number).all()
     return render_template('admin.html', user=users)
+
 
 @app.route('/delete_user/<int:id>', methods=['POST'])
 def delete_user(id):
@@ -385,6 +468,7 @@ def delete_user(id):
     flash('User deleted successfully!', 'success')
 
     return redirect(url_for('admin'))
+
 
 @app.route('/admin_edit/<int:id>', methods=['GET', 'POST'])
 def admin_edit(id):
@@ -422,6 +506,7 @@ def admin_edit(id):
         flash('User updated successfully!', 'success')
 
     return redirect(url_for('admin'))
+
 
 @app.route('/admin_add', methods=['GET', 'POST'])
 def admin_add():
@@ -462,16 +547,18 @@ def admin_add():
         flash('Successfully created user!')
     return redirect(url_for('admin'))
 
+
 @app.route('/')
 def home():
     best_products = [
         {"name": "Fruit Plus Orange", "image_url": "Fruit_plus_orange.jpg"}
-        ]
+    ]
     team = "team.jpg"
     community = "community_event.jpg"
     our_story_image = "our_story.jpg"
     motto = "motto.jpg"
-    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto, team=team, community=community)
+    return render_template('home_page.html', products=best_products, our_story_image=our_story_image, motto=motto,
+                           team=team, community=community)
 
 
 def get_lowest_available_id():
@@ -561,7 +648,6 @@ def delete_rewards(id):
     db.session.commit()
     flash("Reward Deleted successfully!", "success")
     return redirect(url_for('rewards_index'))
-
 
 
 user_points = 8888
@@ -668,6 +754,7 @@ def edit_inventory_item(item_id):
 
     return render_template("edit_item.html", item=item)
 
+
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
     if request.method == 'POST':
@@ -760,6 +847,7 @@ def shopping_page():
         total_price=total_price
     )
 
+
 @app.route("/add_to_cart", methods=["POST"])
 def add_to_cart():
     item_id = int(request.form.get("item_id"))
@@ -803,6 +891,8 @@ def add_to_cart():
 
     flash(f"Added {quantity} of {item.name} to cart!", "success")
     return redirect(url_for("shopping_page"))
+
+
 @app.route("/remove_from_cart", methods=["POST"])
 def remove_from_cart():
     item_id = int(request.form.get("item_id"))
@@ -820,6 +910,8 @@ def remove_from_cart():
 
     flash("Item removed from the cart!", "success")
     return redirect(url_for("shopping_page"))
+
+
 @app.route("/update_cart", methods=["POST"])
 def update_cart():
     item_id = request.form.get("item_id")
@@ -863,6 +955,7 @@ def update_cart():
 
     flash("Cart updated successfully.", "success")
     return redirect(url_for("shopping_page"))
+
 
 # Helper function to validate expiry date
 def validate_expiry_date(expiry_date):
@@ -917,7 +1010,6 @@ def checkout():
             session.pop('applied_reward', None)
             session.pop('applied_discount', None)
 
-
     errors = {}
 
     if request.method == 'POST':
@@ -964,8 +1056,8 @@ def checkout():
             location=location,
             comments=comment,
             total=final_total,
-            discount_applied = discount_amount, # Store discount amount
-            shipping_cost = shipping_cost  # Store shipping cost
+            discount_applied=discount_amount,  # Store discount amount
+            shipping_cost=shipping_cost  # Store shipping cost
 
         )
         db.session.add(order)
@@ -994,6 +1086,7 @@ def checkout():
                            unused_rewards=unused_rewards, selected_reward_id=selected_reward_id,
                            selected_reward=selected_reward)
 
+
 def get_order_details(order_id):
     """
     Retrieve order details, including inventory details for each order item.
@@ -1020,6 +1113,7 @@ def get_order_details(order_id):
 
     return order, items_with_inventory, total_price
 
+
 @app.route('/order_summary/<int:order_id>')
 def order_summary(order_id):
     # Retrieve shared order details
@@ -1031,6 +1125,7 @@ def order_summary(order_id):
         items_with_inventory=items_with_inventory,
         total_price=total_price
     )
+
 
 @app.route("/staff_order_summary/<int:order_id>", methods=["GET"])
 def staff_order_summary(order_id):
@@ -1047,6 +1142,7 @@ def staff_order_summary(order_id):
         total_price=total_price,
         staff_notes=staff_notes  # Pass additional data for staff
     )
+
 
 @app.route("/order/<int:order_id>/edit_item", methods=["POST"])
 def edit_order_item(order_id):
@@ -1092,6 +1188,50 @@ def edit_order_item(order_id):
 
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
+
+def format_ai_insights(ai_response):
+    insights = []
+
+    # Example: Extract insights from the API response
+    if "trends" in ai_response:
+        for trend in ai_response["trends"]:
+            insights.append(f"Trend detected: {trend['description']}")
+
+    if "predictions" in ai_response:
+        for prediction in ai_response["predictions"]:
+            insights.append(f"Prediction: {prediction['description']}")
+
+    if "anomalies" in ai_response:
+        for anomaly in ai_response["anomalies"]:
+            insights.append(f"Anomaly detected on Day {anomaly['day']}: {anomaly['description']}")
+
+    return insights
+
+
+def get_ai_insights(data):
+    # DeepSeek API endpoint (replace with actual endpoint)
+    DEEPSEEK_API_URL = "http://localhost:5000/staff_dashboard"
+
+    # Prepare payload
+    payload = {
+        "data": data,
+        "analysis_type": "business_insights",
+        "parameters": {
+            "target_metrics": ["daily_sale", "products_sold", "profitability"],
+            "time_period": "daily"
+        }
+    }
+
+    # Send request
+    headers = {"Authorization": "Bearer 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"}
+    response = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers)
+
+    if response.status_code == 200:
+        return response.json()  # Return AI-generated insights
+    else:
+        raise Exception(f"API Error: {response.status_code}, {response.text}")
+
+
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
@@ -1104,7 +1244,61 @@ def staff_dashboard():
 
         userid = session['user_id']
         user = User.query.get_or_404(userid)
+        name = user.name
         filename = user.profile_picture
+
+        stats_data = Stats.query.all()
+
+        data = [{
+            'day': stat.day,
+            'products_sold': stat.products_sold,
+            'daily_sale': stat.daily_sale,
+            'daily_customers': stat.daily_customers,
+            'daily_unique_customers': stat.daily_unique_customers,
+            'money_spent_customer': stat.money_spent_customer,
+            'expenses': stat.expenses,
+            'labor_costs': stat.labor_costs,
+            'energy_costs': stat.energy_costs
+        } for stat in stats_data]
+
+        prompt = f"""
+            Analyze the following business data and provide key insights and actionable suggestions in short, clear sentences. Focus on trends, anomalies, and opportunities for improvement.
+
+            Data:
+            {data}
+
+            Instructions:
+            1. Identify trends in sales, customer behavior, and costs.
+            2. Highlight any anomalies or unusual patterns.
+            3. Provide actionable suggestions to improve profitability and efficiency.
+            4. Keep insights and suggestions concise and easy to understand.
+            """
+
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": "Bearer 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",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps({
+                "model": "deepseek/deepseek-r1-distill-llama-70b:free",
+                "messages": [
+                    {"role": "system",
+                     "content": "You are an AI that provides extremely concise business insights in **bullet points**. Keep responses **under 10 words per sentence**, with **no more than 20 words total**. Avoid any instructions or explanations."},
+                    {"role": "user", "content": f"""
+                Provide **3 brief insights** about the following business data, each in **super short sentences**. Keep the response **under 20 words total** and in **bullet points**. 
+                **Do not mention the instructions or explain anything in the response**.
+                - {data}
+                """}
+                ]
+            }),
+            timeout=10
+        )
+
+        response_json = response.json()
+        print(response_json)
+        # ai_response = get_ai_insights(data)
+        # insights = format_ai_insights(ai_response)
 
         return render_template(
             'staff_dashboard.html',
@@ -1113,8 +1307,9 @@ def staff_dashboard():
             notifications=notifications,
             event_revenue=event_revenue,
             low_stock_items=low_stock_items,
-            userid=session['user_id'],
+            name=name,
             profile_picture=filename
+            # insights=response_json['choices'][0]['message']['content']
         )
     else:
         flash('Unauthorized access.', 'danger')
@@ -1145,6 +1340,7 @@ def customer_account():
         flash('Please log in to access your account.', 'warning')
         return redirect(url_for('login'))
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # Check if the user is already logged in
@@ -1152,7 +1348,8 @@ def login():
         if session['role'] == 'staff':
             return redirect(url_for('staff_dashboard'))  # Redirect to staffdashboard if the user is logged in as staff
         elif session['role'] == 'customer':
-            return redirect(url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
+            return redirect(
+                url_for('customer_account'))  # Redirect to customeraccount if the user is logged in as customer
         elif session['role'] == 'admin':
             return redirect(url_for('admin'))
 
@@ -1180,6 +1377,8 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('login.html')
+
+
 @app.route('/logout', methods=['POST'])
 def logout():
     # Clear the session
@@ -1197,14 +1396,17 @@ def forgot_password():
     # Implement forgot password logic here
     return 'Forgot Password Page...'
 
+
 def is_valid_email(email):
     if "@" in email and "." in email.split("@")[-1]:
         return True
     return False
 
+
 @app.route('/contact_us')
 def contact_us_page():
     return render_template('contact_us.html')
+
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
@@ -1227,6 +1429,7 @@ def submit_contact_us():
 
     return redirect('/contact_us')
 
+
 @app.route('/points_system')
 def points_system():
     # Initialize session variables if not set
@@ -1247,6 +1450,7 @@ def points_system():
         session['points'] += 2  # Add points for daily login
 
     return render_template('points_system.html', points=session['points'], streak=session['streak'])
+
 
 @app.route('/spin', methods=['POST'])
 def spin():
@@ -1289,7 +1493,7 @@ def generate_receipt(order_id):
 
     # Loop through each order item and fetch the associated inventory item
     for item in order_items:
-        inventory_item = InventoryItem.query.get(item.inventory_item_id)  # Get the associated inventory item
+        inventory_item = InventoryItem.query.get(item.inventory_item_id)
         if inventory_item:
             item_total_cost = item.quantity * item.price
             total_price += item_total_cost  # Add to the total cost
@@ -1316,6 +1520,7 @@ def generate_receipt(order_id):
         f.write(receipt_content)
 
     return receipt_file
+
 
 @app.route('/notifications', methods=['GET', 'POST'])
 def notifications():
@@ -1355,6 +1560,7 @@ def accept_order(order_id):
     flash(f"Order {order.id} has been accepted!", 'success')
     return redirect(url_for('notifications'))  # Redirect to the notifications page
 
+
 @app.route('/view_order_details/<int:order_id>', methods=['GET'])
 def view_order_details(order_id):
     order = Order.query.get_or_404(order_id)
@@ -1374,6 +1580,8 @@ def view_order_details(order_id):
         })
 
     return render_template('order_details.html', order=order, items=items_with_inventory, total_price=total_price)
+
+
 @app.route('/use_reward/<int:reward_id>', methods=['POST'])
 def use_reward(reward_id):
     if 'user_id' not in session:
@@ -1394,8 +1602,10 @@ def use_reward(reward_id):
     else:
         session['applied_discount'] = reward.discount_value  # ✅ Use `discount_value`, not `points_used`
 
-    flash(f"{reward.reward_name} applied! Discount of ${session['applied_discount']} will be deducted at checkout.", "success")
+    flash(f"{reward.reward_name} applied! Discount of ${session['applied_discount']} will be deducted at checkout.",
+          "success")
     return redirect(url_for('checkout'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)

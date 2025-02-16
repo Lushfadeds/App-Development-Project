@@ -30,6 +30,60 @@
     display: none;
 }
 
+.placeholder-box {
+    height: 320px;
+}
+
+.draggable {
+    cursor: move;
+}
+
+.draggable.dragging {
+    opacity: 0.5;
+    position: relative;
+    z-index: 1001;
+}
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 20%;
+    background-color: #f8f9fa;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    overflow-y: auto;
+}
+
+.template-cards .card {
+    cursor: move;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.template-cards .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.placeholder-box-small {
+    height: 100px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+}
+
+.template-item.dragging {
+    opacity: 0.5;
+}
+
+/* Adjust main content when sidebar is open */
+.content-shift {
+    margin-left: 300px;
+    transition: margin-left 0.3s ease;
+}
+
+
 
 
 /* Overlay */
@@ -60,7 +114,6 @@
     width: 400px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    position: relative;
     padding: 20px;
 }
 
