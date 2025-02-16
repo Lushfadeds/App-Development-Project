@@ -1389,10 +1389,6 @@ def points_system():
         flash("Please log in to access this page.", "danger")
         return redirect(url_for('login'))
 
-    if 'role' in session and session['role'] == 'Customer':
-        user_id = session['user_id']
-        user = User.query.get_or_404(user_id)
-
     # ✅ Fetch user details
     user = User.query.get(session['user_id'])
     if not user or user.role.lower() != "customer":

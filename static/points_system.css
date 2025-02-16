@@ -1,6 +1,5 @@
 body {
     font-family: Arial, sans-serif;
-    text-align: center;
     background-color: #f4f4f9;
     margin: 0;
     padding: 0;
@@ -9,6 +8,7 @@ body {
 
 
 .container {
+    text-align: center;
     margin: 50px auto;
     width: 80%;
     max-width: 600px;
@@ -183,4 +183,14 @@ h1 {
     .arrow {
         top: -15px; /* Adjust arrow placement for smaller wheel */
     }
+}
+
+#flash-message {
+    width: 100%;
+    padding: 15px;
+    font-weight: bold;
+    background-color: ##4CAF50; /* Green success */
+    color: black;
+    border-radius: 5px;
+    transition: opacity 0.5s ease-in-out;
 }

@@ -1,15 +1,28 @@
 document.addEventListener("DOMContentLoaded", function () {
-        fetch("/get_user_data")
-            .then(response => response.json())
-            .then(data => {
-                if (data.newUser) {
-                    alert("🎉 Welcome to the platform! You've received 500 bonus points! 🎊");
-                }
-                document.getElementById("points").textContent = data.points;
-                document.getElementById("streak").textContent = data.streak;
-            })
-            .catch(error => console.error("Error fetching user data:", error));
+    fetch("/get_user_data")
+        .then(response => response.json())
+        .then(data => {
+            if (data.newUser) {
+                showFlashMessage("🎉 Welcome to the platform! You've received 500 bonus points! 🎊");
+            }
+            document.getElementById("points").textContent = data.points;
+            document.getElementById("streak").textContent = data.streak;
+        })
+        .catch(error => console.error("Error fetching user data:", error));
     });
+
+
+function showFlashMessage(message){
+    const flashMessage = document.getElementById("flash-message");
+    flashMessage.textContent = message;
+    flashMessage.classList.remove("d-none");
+    flashMessage.classList.add("show");
+
+    setTimeout(() => {
+        flashMessage.classList.add("d-none");
+    }, 5000);
+
+}
 
 
 document.addEventListener("DOMContentLoaded", function () {
