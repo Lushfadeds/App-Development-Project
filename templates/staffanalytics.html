@@ -140,7 +140,14 @@
                 <div class="col-md-12">
                     <div class="card p-3 shadow-sm">
                         <h5 class="card-title">Mamak Bot</h5>
-                        <div>{{ response }}</div>
+                        <div class="insights">
+                            <p class="fw-bold">Insights and Recommendations</p>
+                            <ul>
+                                {% for insight in insights %}
+                                <li>{{ insight | safe }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                         <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
                     </div>
                 </div>

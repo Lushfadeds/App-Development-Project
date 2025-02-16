@@ -94,6 +94,7 @@ class Reward(db.Model):
 class Stats(db.Model):
     __bind_key__ = 'statistics'
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)  # Manually linking to User.id
     day = db.Column(db.Integer, nullable=True)
     products_sold = db.Column(db.Integer, nullable=False)
     daily_sale = db.Column(db.Integer, nullable=False)
@@ -103,6 +104,10 @@ class Stats(db.Model):
     expenses = db.Column(db.Integer, nullable=False)
     labor_costs = db.Column(db.Float, nullable=False)
     energy_costs = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f"<Stats(id={self.id}, user_id={self.user_id}, day={self.day}, products_sold={self.products_sold}, daily_sale={self.daily_sale}, daily_customers={self.daily_customers}, daily_unique_customers={self.daily_unique_customers}, money_spent_customer={self.money_spent_customer}, expenses={self.expenses}, labor_costs={self.labor_costs}, energy_costs={self.energy_costs})>"
+
 
 
 class InventoryItem(db.Model):
@@ -191,10 +196,14 @@ class RedeemedReward(db.Model):
     redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(10), default="Unused")  # New field to track usage
 
+from dashboard import sample_data
+
 
 # Create the database table
 with app.app_context():
     db.create_all()
+
+    user = db.relationship('User', backref='stats')
 
     if not User.query.filter_by(role='admin').first():
         admin_user = User(
@@ -379,74 +388,143 @@ def staff_analytics():
         user_id = session['user_id']
         user = User.query.get_or_404(user_id)
         profile_picture = user.profile_picture
+        stats_data = Stats.query.filter_by(user_id=user_id).all()
+        max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
 
-    max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
-    stats = Stats.query.all()
-    for i in stats:
-        print(i.day)
+        data = [{
+            'day': stat.day,
+            'products_sold': stat.products_sold,
+            'daily_sale': stat.daily_sale,
+            'daily_customers': stat.daily_customers,
+            'daily_unique_customers': stat.daily_unique_customers,
+            'money_spent_customer': stat.money_spent_customer,
+            'expenses': stat.expenses,
+            'labor_costs': stat.labor_costs,
+            'energy_costs': stat.energy_costs
+        } for stat in stats_data]
 
-    return render_template('staffanalytics.html', active_page='staffanalytics', user_stats=max_day_entry, profile_picture=profile_picture, userid=user_id)
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": "Bearer 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",
+                "Content-Type": "application/json"
+            },
+            data=json.dumps({
+                "model": "deepseek/deepseek-chat:free",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Provide extremely concise business insights and recommendations in bullet points. Keep responses under 30 words per sentence and under 100 words total. Separate each point with a |"
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""Provide 3 brief insights and recommendations about the following business data:
+                        - {data}
+                        """
+                    }
+                ]
+            })
+        )
+
+        response_json = response.json()
+        insights = response_json['choices'][0]['message']['content']
+        print(insights)
+        insights = insights.split('|')
+
+        return render_template('staffanalytics.html', insights=insights, active_page='staffanalytics',
+                               user_stats=max_day_entry, profile_picture=profile_picture, userid=user_id)
 
 
-@app.route('/add_graph', methods=['POST'])
+
+@app.route('/analytics_add', methods=['POST'])
 def add_graph():
-    product = request.form['products_sold']
     day = request.form['day']
-    sales_today = request.form['sales_today']
-    customers_today = request.form['customers_today']
-    unique_customers_today = request.form['unique_customers_today']
+    products_sold = request.form['products_sold']
+    daily_sale = request.form['daily_sale']
+    daily_customers = request.form['daily_customers']
+    daily_unique_customers = request.form['daily_unique_customers']
     money_spent_customer = request.form['money_spent_customer']
+    expenses = request.form['expenses']
+    labor_costs = request.form['labor_costs']
+    energy_costs = request.form['energy_costs']
 
-    # new_user = session['user_id']
-
-    max_role_id = db.session.query(db.func.max(Stats.id)).scalar() or 0
-    new_role_id = max_role_id + 1
-
+    # Check if the day already exists in the database
     if Stats.query.filter_by(day=day).first():
-        flash("Day already exists. Please use a different day.", "error")
+        flash("Day already exists. Please use a different day.", "warning")
         return redirect(url_for('analytics'))
 
-    new_graph = Stats(id=new_role_id,
-                      day=day,
-                      products_sold=product,
-                      daily_sale=sales_today,
-                      daily_customers=customers_today,
-                      daily_unique_customers=unique_customers_today,
-                      money_spent_customer=money_spent_customer)
-    db.session.add(new_graph)
+    user_id = session['user_id']
+
+    # Create a new Stats entry
+    new_stat = Stats(
+        day=day,
+        user_id = user_id,
+        products_sold=products_sold,
+        daily_sale=daily_sale,
+        daily_customers=daily_customers,
+        daily_unique_customers=daily_unique_customers,
+        money_spent_customer=money_spent_customer,
+        expenses=expenses,
+        labor_costs=labor_costs,
+        energy_costs=energy_costs
+    )
+
+    # Add the new entry to the database and commit
+    db.session.add(new_stat)
     db.session.commit()
-    flash('Statistics Added Successfully!')
+
+    # Flash a success message and redirect to the analytics page
+    flash('Statistics Added Successfully!', 'success')
     return redirect(url_for('analytics'))
+
 
 @app.route('/analytics')
 def analytics():
-    graph = Stats.query.all()
-    for i in graph:
-        print(i)
-    return render_template('analytics.html', graph_data=graph)
+    user_id = session['user_id']
+    stat = Stats.query.filter_by(user_id=user_id).all()
+    print(stat)
+    return render_template('analytics.html', i=stat)
 
 
 @app.route('/update_analytics/<int:id>', methods=['GET', 'POST'])
 def update(id: int):
     stat = Stats.query.get_or_404(id)
+
     if request.method == "POST":
-        stat.products_sold = request.form['products_sold']
-        stat.day = request.form['day']
-        stat.daily_sale = request.form['daily_sale']
-        stat.daily_customers = request.form['daily_customers']
-        stat.daily_unique_customers = request.form['daily_unique_customers']
-        stat.money_spent_customer = request.form['money_spent_customer']
+        day = request.form['day']
+        products_sold = request.form['products_sold']
+        daily_sale = request.form['daily_sale']
+        daily_customers = request.form['daily_customers']
+        daily_unique_customers = request.form['daily_unique_customers']
+        money_spent_customer = request.form['money_spent_customer']
+        expenses = request.form['expenses']
+        labor_costs = request.form['labor_costs']
+        energy_costs = request.form['energy_costs']
 
-        if Stats.query.filter_by(day=stat.day).first():
+        # Check if the day already exists in the database for another record
+        if Stats.query.filter(Stats.day == day, Stats.id != id).first():
             flash("Day already exists. Please use a different day.", "error")
-            return redirect(url_for('analytics'))
+            return redirect(url_for('update', id=id))
 
+        # Update the stat entry
+        stat.day = day
+        stat.products_sold = products_sold
+        stat.daily_sale = daily_sale
+        stat.daily_customers = daily_customers
+        stat.daily_unique_customers = daily_unique_customers
+        stat.money_spent_customer = money_spent_customer
+        stat.expenses = expenses
+        stat.labor_costs = labor_costs
+        stat.energy_costs = energy_costs
+
+        # Commit the changes to the database
         db.session.commit()
-        flash("Analytic updated successfully!", "success")
+
+        # Flash a success message and redirect to the analytics page
+        flash("Analytics updated successfully!", "success")
         return redirect(url_for('analytics'))
 
-    graph = Stats.query.all()
-    return render_template('update_analytics.html', graph_data=graph, stat=stat)
+    return redirect(url_for('analytics'))
 
 
 @app.route('/delete_analytics/<int:id>', methods=['POST'])
@@ -585,7 +663,9 @@ def admin_add():
         db.session.add(new_user)
         db.session.commit()
 
-        flash('Successfully created user!')
+        session['user_id'] = new_user.id
+
+        flash('Successfully created user!', 'success')
     return redirect(url_for('admin'))
 
 
@@ -1286,49 +1366,6 @@ def edit_order_item(order_id):
     return redirect(url_for("staff_order_summary", order_id=order_id))
 
 
-def format_ai_insights(ai_response):
-    insights = []
-
-    # Example: Extract insights from the API response
-    if "trends" in ai_response:
-        for trend in ai_response["trends"]:
-            insights.append(f"Trend detected: {trend['description']}")
-
-    if "predictions" in ai_response:
-        for prediction in ai_response["predictions"]:
-            insights.append(f"Prediction: {prediction['description']}")
-
-    if "anomalies" in ai_response:
-        for anomaly in ai_response["anomalies"]:
-            insights.append(f"Anomaly detected on Day {anomaly['day']}: {anomaly['description']}")
-
-    return insights
-
-
-def get_ai_insights(data):
-    # DeepSeek API endpoint (replace with actual endpoint)
-    DEEPSEEK_API_URL = "http://localhost:5000/staff_dashboard"
-
-    # Prepare payload
-    payload = {
-        "data": data,
-        "analysis_type": "business_insights",
-        "parameters": {
-            "target_metrics": ["daily_sale", "products_sold", "profitability"],
-            "time_period": "daily"
-        }
-    }
-
-    # Send request
-    headers = {"Authorization": "Bearer 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"}
-    response = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers)
-
-    if response.status_code == 200:
-        return response.json()  # Return AI-generated insights
-    else:
-        raise Exception(f"API Error: {response.status_code}, {response.text}")
-
-
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
@@ -1344,56 +1381,6 @@ def staff_dashboard():
         name = user.name
         filename = user.profile_picture
 
-        stats_data = Stats.query.all()
-
-        data = [{
-            'day': stat.day,
-            'products_sold': stat.products_sold,
-            'daily_sale': stat.daily_sale,
-            'daily_customers': stat.daily_customers,
-            'daily_unique_customers': stat.daily_unique_customers,
-            'money_spent_customer': stat.money_spent_customer,
-            'expenses': stat.expenses,
-            'labor_costs': stat.labor_costs,
-            'energy_costs': stat.energy_costs
-        } for stat in stats_data]
-
-        prompt = f"""
-            Analyze the following business data and provide key insights and actionable suggestions in short, clear sentences. Focus on trends, anomalies, and opportunities for improvement.
-
-            Data:
-            {data}
-
-            Instructions:
-            1. Identify trends in sales, customer behavior, and costs.
-            2. Highlight any anomalies or unusual patterns.
-            3. Provide actionable suggestions to improve profitability and efficiency.
-            4. Keep insights and suggestions concise and easy to understand.
-            """
-
-        response = requests.post(
-            url="https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": "Bearer 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",
-                "Content-Type": "application/json",
-            },
-            data=json.dumps({
-                "model": "deepseek/deepseek-r1-distill-llama-70b:free",
-                "messages": [
-                    {"role": "system",
-                     "content": "You are an AI that provides extremely concise business insights in **bullet points**. Keep responses **under 10 words per sentence**, with **no more than 20 words total**. Avoid any instructions or explanations."},
-                    {"role": "user", "content": f"""
-                Provide **3 brief insights** about the following business data, each in **super short sentences**. Keep the response **under 20 words total** and in **bullet points**. 
-                **Do not mention the instructions or explain anything in the response**.
-                - {data}
-                """}
-                ]
-            }),
-            timeout=10
-        )
-
-        response_json = response.json()
-        print(response_json)
         # ai_response = get_ai_insights(data)
         # insights = format_ai_insights(ai_response)
 

@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const addEdit = document.getElementById('addEdit');
     const overlay = document.getElementById('overlay');
     const sidebar = document.getElementById('sidebar');
-    const mainContent = document.querySelector('.analytics-section');
+    const mainContent = document.querySelector('.container-fluid');
 
     // Function to toggle delete icons
     function toggleDeleteIcons(show) {
@@ -81,46 +81,57 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Close Edit Mode
-    closeEdit.addEventListener('click', async () => {
-        const layout = captureLayout();
+    if (closeEdit && sidebar && mainContent) {
+        closeEdit.addEventListener('click', async () => {
+            console.log('Close Edit button clicked');
 
-        try {
-            const response = await fetch('/save_layout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(layout)
+            const layout = captureLayout();
+
+            try {
+                const response = await fetch('/save_layout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(layout)
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    console.log('Layout saved successfully');
+                }
+            } catch (error) {
+                console.error('Error saving layout:', error);
+            }
+
+            // Close edit mode
+            overlay.classList.add('d-none');
+            closeEdit.classList.add('d-none');
+            addEdit.classList.add('d-none');
+            openEdit.classList.remove('d-none');
+            sidebar.classList.add('d-none');
+            console.log('Sidebar should be hidden now');
+            toggleDeleteIcons(false);
+
+            // Remove draggable attributes
+            document.querySelectorAll('.draggable').forEach(item => {
+                item.classList.remove('draggable');
+                item.draggable = false;
             });
 
-            const data = await response.json();
-            if (data.status === 'success') {
-                console.log('Layout saved successfully');
-            }
-        } catch (error) {
-            console.error('Error saving layout:', error);
-        }
-
-        // Close edit mode
-        overlay.classList.add('d-none');
-        closeEdit.classList.add('d-none');
-        addEdit.classList.add('d-none');
-        openEdit.classList.remove('d-none');
-        sidebar.classList.add('d-none');
-        toggleDeleteIcons(false);
-
-        // Remove draggable attributes
-        document.querySelectorAll('.draggable').forEach(item => {
-            item.classList.remove('draggable');
-            item.draggable = false;
+            // Make template cards not draggable
+            const templateCards = document.querySelectorAll('.template-item');
+            templateCards.forEach(card => {
+                card.draggable = false;
+            });
         });
-
-        // Make template cards not draggable
-        const templateCards = document.querySelectorAll('.template-item');
-        templateCards.forEach(card => {
-            card.draggable = false;
+    } else {
+        console.error('One or more elements not found:', {
+            closeEdit,
+            sidebar,
+            mainContent
         });
-    });
+    }
 
     // Toggle Sidebar
     addEdit.addEventListener('click', () => {
