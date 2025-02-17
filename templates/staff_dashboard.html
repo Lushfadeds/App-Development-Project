@@ -53,17 +53,19 @@
         </div>
       </div>
 
-      <!-- Notification Section -->
+      <!-- Notifications Section -->
       <div class="row mb-5">
-        <div class="col-12">
-          <div class="card h-100">
-            <div class="card-body px-5 py-4">
-              <h5 class="card-title fs-4">You currently have: </h5>
-              <p class="notif card-text fs-2">1 Notification(s)</p>
-              <a href="#" class="btn btn-primary w-100 fs-5 fw-bold p-2 mt-2">View notifications</a>
-            </div>
+          <div class="col-12">
+              <div class="card h-100">
+                  <div class="card-body px-5 py-4">
+                      <h5 class="card-title fs-4">You currently have:</h5>
+                      <p class="notif card-text fs-2">{{ pending_orders_count }} Notification(s)</p>
+                      <a href="{{ url_for('notifications') }}" class="btn btn-primary w-100 fs-5 fw-bold p-2 mt-2">
+                          View notifications
+                      </a>
+                  </div>
+              </div>
           </div>
-        </div>
       </div>
 
       <!-- Orders Table -->
@@ -76,6 +78,7 @@
                     <th>Location</th>
                     <th>Total Cost</th>  <!-- Added column -->
                     <th>Action</th>
+                    <th>Complete Order</th>  <!-- Add a column for Complete Order -->
                 </tr>
             </thead>
             <tbody>
@@ -86,17 +89,25 @@
                         <td>{{ order.location }}</td>
                         <td>${{ "%.2f"|format(order.total) }}</td>  <!-- Displaying total cost -->
                         <td><a href="{{ url_for('staff_order_summary', order_id=order.id) }}" class="btn btn-primary">Find out more</a></td>
+                        <td>
+                            {% if order.status == 'Accepted' %}
+                            <!-- Only show the button if the order status is 'Accepted' -->
+                            <form method="POST" action="{{ url_for('complete_order', order_id=order.id) }}">
+                                <button type="submit" class="btn btn-success">Complete Order</button>
+                            </form>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="4" class="text-center">No accepted orders yet.</td>
+                        <td colspan="5" class="text-center">No accepted orders yet.</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
       </div>
     </div>
-      </div>
+  </div>
 </div>
 {% endblock %}

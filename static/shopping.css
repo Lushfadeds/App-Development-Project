@@ -1,14 +1,15 @@
-/* Sidebar */
 .sidebar {
-    width: 20%; /* Fixed width */
+    width: 250px; /* Set a fixed width */
+    height: 100vh; /* Full height */
+    position: relative; /* Ensure it's in the normal document flow */
     background-color: #f4f4f4;
     padding: 20px;
-    height: 100vh; /* Full height */
-    overflow-y: auto;
+    overflow-y: auto; /* Allow scrolling */
     display: flex;
     flex-direction: column;
     gap: 30px;
 }
+
 
 /* Categories Section */
 .categories-section h2,
@@ -128,6 +129,7 @@ categories-section ul li a {
     --bs-gutter-x: 1.5rem;
     --bs-gutter-y: 0;
     display: flex
+
 ;
     flex-wrap: wrap;
     margin-top: calc(-1* var(--bs-gutter-y));

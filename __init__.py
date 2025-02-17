@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
-import json
 from datetime import datetime
 import re
 import os
@@ -109,7 +108,9 @@ class Stats(db.Model):
     def __repr__(self):
         return f"<Stats(id={self.id}, user_id={self.user_id}, day={self.day}, products_sold={self.products_sold}, daily_sale={self.daily_sale}, daily_customers={self.daily_customers}, daily_unique_customers={self.daily_unique_customers}, money_spent_customer={self.money_spent_customer}, expenses={self.expenses}, labor_costs={self.labor_costs}, energy_costs={self.energy_costs})>"
 
-
+with app.app_context():
+    if not os.path.exists('rewards.db'):
+        db.create_all()
 
 class InventoryItem(db.Model):
     __bind_key__ = 'inventory'
@@ -197,14 +198,9 @@ class RedeemedReward(db.Model):
     redeemed_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(10), default="Unused")  # New field to track usage
 
-from dashboard import sample_data
-
-
 # Create the database table
 with app.app_context():
     db.create_all()
-
-    user = db.relationship('User', backref='stats')
 
     if not User.query.filter_by(role='admin').first():
         admin_user = User(
@@ -800,6 +796,15 @@ def rewards_index():
 
 @app.route('/create_rewards', methods=['GET', 'POST'])
 def create_rewards():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     if request.method == 'POST':
         name = request.form['name']
         points_required = request.form['points_required']
@@ -810,11 +815,21 @@ def create_rewards():
         db.session.commit()
         flash("Reward created successfully!", "success")
         return redirect(url_for('rewards_index'))
-    return render_template('create_rewards.html')
+
+    return render_template('create_rewards.html', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/update_rewards/<int:id>', methods=['GET', 'POST'])
 def update_rewards(id):
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     reward = Reward.query.get_or_404(id)
     if request.method == 'POST':
         reward.name = request.form['name']
@@ -823,7 +838,7 @@ def update_rewards(id):
         db.session.commit()
         flash("Reward updated successfully!", "success")
         return redirect(url_for('rewards_index'))
-    return render_template('update_rewards.html', reward=reward)
+    return render_template('update_rewards.html', reward=reward, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/delete_rewards/<int:id>')
@@ -931,6 +946,15 @@ def inventory_page():
 
 @app.route("/inventory/edit/<int:item_id>", methods=["GET", "POST"])
 def edit_inventory_item(item_id):
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     item = InventoryItem.query.get_or_404(item_id)
 
     if request.method == "POST":
@@ -960,11 +984,20 @@ def edit_inventory_item(item_id):
         flash('Item updated successfully!')
         return redirect(url_for("inventory_page"))
 
-    return render_template("edit_item.html", item=item)
+    return render_template("edit_item.html", item=item, profile_picture=profile_picture, userid=user_id)
 
 
 @app.route('/inventory/new', methods=['GET', 'POST'])
 def add_new_item():
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     if request.method == 'POST':
         name = request.form.get('name')
         stock = request.form.get('stock')
@@ -1005,7 +1038,7 @@ def add_new_item():
         flash('Item successfully added!')
         return redirect(url_for('inventory_page'))
 
-    return render_template('add_item.html')
+    return render_template('add_item.html', profile_picture=profile_picture, userid=user_id)
 
 
 @app.route("/shopping", methods=["GET"])
@@ -1334,6 +1367,15 @@ def get_order_details(order_id):
 
 @app.route('/order_summary/<int:order_id>')
 def order_summary(order_id):
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Retrieve shared order details
     order, items_with_inventory, total_price = get_order_details(order_id)
 
@@ -1341,12 +1383,23 @@ def order_summary(order_id):
         'order_summary.html',
         order=order,
         items_with_inventory=items_with_inventory,
-        total_price=total_price
+        total_price=total_price,
+        profile_picture=profile_picture,
+        userid=user_id
     )
 
 
 @app.route("/staff_order_summary/<int:order_id>", methods=["GET"])
 def staff_order_summary(order_id):
+    if 'role' in session and session['role'] == 'staff':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     # Retrieve shared order details
     order, items_with_inventory, total_price = get_order_details(order_id)
 
@@ -1358,7 +1411,9 @@ def staff_order_summary(order_id):
         order=order,
         items_with_inventory=items_with_inventory,
         total_price=total_price,
-        staff_notes=staff_notes  # Pass additional data for staff
+        staff_notes=staff_notes,  # Pass additional data for staff
+        profile_picture=profile_picture,
+        userid=user_id
     )
 
 
@@ -1410,23 +1465,26 @@ def edit_order_item(order_id):
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
-        accepted_orders = Order.query.filter(Order.status == "Accepted").all()
-        pending_orders_count = Order.query.filter(Order.status == "Pending").count()
-
-        notifications = pending_orders_count
-        event_revenue = 784
-        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
-
         userid = session['user_id']
         user = User.query.get_or_404(userid)
         name = user.name
         filename = user.profile_picture
 
+        # ✅ Fetch pending orders count dynamically
+        pending_orders_count = Order.query.filter_by(status="Pending").count()
+
+        # ✅ Fetch accepted orders for display
+        accepted_orders = Order.query.filter(Order.status == "Accepted").all()
+
+        # ✅ Fetch revenue and low-stock items
+        event_revenue = 784  # Placeholder, replace with dynamic value if needed
+        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
+
         return render_template(
             'staff_dashboard.html',
             accepted_orders=accepted_orders,
-            pending_orders_count=pending_orders_count,
-            notifications=notifications,
+            pending_orders_count=pending_orders_count,  # ✅ Pass dynamic count
+            notifications=pending_orders_count,  # ✅ Notifications = pending orders count
             event_revenue=event_revenue,
             low_stock_items=low_stock_items,
             name=name,
@@ -1435,7 +1493,6 @@ def staff_dashboard():
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
-
 
 @app.route('/customer_account')
 def customer_account():
@@ -1541,6 +1598,15 @@ def contact_us_page():
 
 @app.route('/submit_contact_us', methods=['POST'])
 def submit_contact_us():
+    if 'role' in session and session['role'] == 'Customer':
+        user_id = session['user_id']
+        user = User.query.get_or_404(user_id)
+        profile_picture = user.profile_picture
+
+    else:
+        user_id = None
+        profile_picture = "unknown.png"
+
     feedback_type = request.form.get('feedback_type')
     full_name = request.form.get('full_name')
     email = request.form.get('email')
@@ -1568,7 +1634,7 @@ def submit_contact_us():
         flash('Feedback submitted successfully!', 'success')
         return redirect('/contact_us')
 
-    return redirect('/contact_us')
+    return redirect('/contact_us', profile_picture=profile_picture, userid=user_id)
 # Route to view feedback and replies
 @app.route('/contact_us_data')
 def contact_us_data():
@@ -1648,16 +1714,17 @@ def spin():
 
     today = datetime.utcnow().date()
 
-    # ✅ Check if the user has already spun the wheel today
+    # ✅ Ensure the spin does NOT reset the streak
     if user.last_wheel_spin == today:
-        return jsonify({'error': 'You have already spun the wheel today', 'points': user.points})
+        return jsonify({'error': 'You have already spun the wheel today!', 'points': user.points})
 
-    # ✅ If not, allow the user to spin
-    outcomes = [2, 3, 5, 10, 0]  # Possible point rewards
+    # ✅ Generate a random point reward
+    outcomes = [2, 3, 5, 10, 0]
     result = random.choice(outcomes)
 
+    # ✅ Update only the points, NOT the streak
     user.points += result
-    user.last_wheel_spin = today  # ✅ Store the spin date in the database
+    user.last_wheel_spin = today  # ✅ Store the last spin date separately
     db.session.commit()
 
     return jsonify({
@@ -1831,24 +1898,23 @@ def collect_points():
         return jsonify({'error': 'Points already collected today'}), 400
 
     # **NEW: Handle Streak Logic Correctly**
+    days_since_last_login = (today - user.last_login).days if user.last_login else None
+
     if user.last_login is None:
         print(f"✅ First-time login for {user.name}. Setting streak to 1.")
         user.streak = 1  # ✅ Ensure streak starts at 1
-    else:
-        days_since_last_login = (today - user.last_login).days
+    elif days_since_last_login == 1:
+        # ✅ Increase streak if logged in the next day
+        user.streak += 1
+    elif days_since_last_login > 1:
+        # ✅ Reset streak if a day is missed
+        user.streak = 1
+        streak_data = {}  # Clear past streak data
 
-        if days_since_last_login == 1:
-            # ✅ Increase streak if logged in the next day
-            user.streak += 1
-        elif days_since_last_login > 1:
-            # ✅ Reset streak if a day is missed
-            user.streak = 1
-            streak_data = {}  # Clear past streak data
-
-        # ✅ If a new week starts, reset the streak
-        if 'Sunday' in streak_data and today_name == 'Monday':
-            streak_data = {}
-            user.streak = 1
+    # ✅ If a new week starts, reset the streak
+    if 'Sunday' in streak_data and today_name == 'Monday':
+        streak_data = {}
+        user.streak = 1
 
     # ✅ Calculate Points Earned Based on Streak
     points_earned = min(user.streak * 10, 100)  # ✅ Cap at 100 points per day
@@ -1887,49 +1953,68 @@ def get_user_data():
 
     today = datetime.utcnow().date()
     is_new_user = False  # ✅ Flag to track first login
+    spun_today = user.last_wheel_spin == today  # ✅ Check if user spun the wheel today
 
     # ✅ First-Time User: Award 500 Points
     if user.last_login is None:
         print(f"🎉 First-Time User Detected: {user.name} - Awarding 500 Points!")
         user.streak = 1  # ✅ Start fresh streak
         user.points += 500  # ✅ Award 500 points
-        user.streak_data = json.dumps({})
+        user.streak_data = json.dumps({})  # ✅ Reset streak data
         is_new_user = True  # ✅ Mark user as new
 
-    # ✅ Load or reset streak data
+    # ✅ Load existing streak data
     streak_data = json.loads(user.streak_data) if user.streak_data else {}
 
     today_name = today.strftime('%A')
 
+    # ✅ Do NOT auto-assign streak data here!
+    # (We only update this when `collect_points` is pressed)
+
     # ✅ Reset streak if over 7 days
     if user.last_login and (today - user.last_login).days > 7:
-        user.streak = 1
-        streak_data = {today_name: True}
-    elif user.last_login and (today - user.last_login).days == 1:
-        user.streak += 1
-        streak_data[today_name] = True
-    elif user.last_login and (today - user.last_login).days > 1:
-        user.streak = 1
-        streak_data = {}
+        user.streak = 1  # Reset streak
+        streak_data = {}  # Clear past streaks
 
     # ✅ Reset streak on Monday if Sunday was collected
     if 'Sunday' in streak_data and today_name == 'Monday':
         streak_data = {}
 
-    # ✅ Save updates
-    user.streak_data = json.dumps(streak_data)
-    user.last_login = today
-    db.session.commit()
+    # ✅ Only update last login date (DO NOT modify streak here)
+    if user.last_login != today:
+        user.last_login = today
+        db.session.commit()
 
-    print(f"DEBUG: User {user.name} - Points: {user.points}, Streak: {user.streak}")
+    print(f"DEBUG: User {user.name} - Points: {user.points}, Streak: {user.streak}, Spun Today: {spun_today}")
 
     return jsonify({
         'points': user.points,
         'streak': user.streak,
-        'streakData': streak_data,
-        'newUser': is_new_user  # ✅ Send this to the frontend
+        'streakData': streak_data,  # ✅ Does NOT pre-mark today's streak
+        'newUser': is_new_user,
+        'spunToday': spun_today
     })
+@app.route('/complete_order/<int:order_id>', methods=['POST'])
+def complete_order(order_id):
+    # Ensure the user is a staff member
+    if 'role' not in session or session['role'] != 'staff':
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('login'))
 
+    # Retrieve the order from the database
+    order = Order.query.get_or_404(order_id)
+
+    # Ensure the order is in the 'Accepted' state
+    if order.status != 'Accepted':
+        flash("Only accepted orders can be completed.", "warning")
+        return redirect(url_for('staff_dashboard'))
+
+    # Update the order status to 'Completed'
+    order.status = 'Completed'
+    db.session.commit()
+
+    flash(f"Order {order.id} has been marked as completed!", "success")
+    return redirect(url_for('staff_dashboard'))  # Redirect back to staff dashboard
 
 if __name__ == '__main__':
     app.run(debug=True)
