@@ -10,7 +10,6 @@ openEdit.addEventListener('click', () => {
     });
 
     editToggle();
-
 });
 
 doneEdit.addEventListener('click', () => {
@@ -20,17 +19,16 @@ doneEdit.addEventListener('click', () => {
     });
 
     editToggle();
-
 });
 
 function editToggle() {
     addEdit.classList.toggle('d-none');
     openEdit.classList.toggle('d-none');
     doneEdit.classList.toggle('d-none');
-    dataEdit.classList.toggle('d-none')
+    dataEdit.classList.toggle('d-none');
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener('DOMContentLoaded', function() {
     const icons = document.querySelectorAll('.fa-regular.fa-square-minus');
 
     icons.forEach(icon => {
@@ -41,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
     const openEdit = document.getElementById('openEdit');
     const closeEdit = document.getElementById('closeEdit');
     const addEdit = document.getElementById('addEdit');
@@ -113,8 +111,8 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log('Sidebar should be hidden now');
             toggleDeleteIcons(false);
 
-            // Remove draggable attributes
-            document.querySelectorAll('.draggable').forEach(item => {
+            // Remove draggable attributes and classes
+            document.querySelectorAll('.draggable-item').forEach(item => {
                 item.classList.remove('draggable');
                 item.draggable = false;
             });
@@ -141,44 +139,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Function to capture the current layout
     function captureLayout() {
-        // Only capture the analytics section
-        const analyticsSection = document.querySelector('.analytics-section') || mainContent;
-        const rows = analyticsSection.querySelectorAll('.row');
+        // Only capture the main content section
+        const mainContent = document.querySelector('.mainContent');
+        const rows = mainContent.querySelectorAll('.row');
         const layout = [];
 
-        rows.forEach(row => {
-            const rowCards = [];
-            row.querySelectorAll('.col').forEach(card => {
+            rows.forEach(row => {
+                const rowCards = [];
+                row.querySelectorAll('.col').forEach(card => {
                 const title = card.querySelector('h5');
-                const content = card.querySelector('div:not(.card)');
+                const numericContent = card.querySelector('.fw-bold.fs-1');
+                const graphContent = card.querySelector('.graph-container');
 
-                if (title && content) {
-                    rowCards.push({
-                        type: title.textContent.trim(),
-                        content: content.innerHTML.trim(),
-                    });
+                    if (title) {
+                        const cardData = {
+                            type: title.textContent.trim(),
+                    };
+
+                        // Include numeric content if it exists
+                        if (numericContent) {
+                            cardData.content = numericContent.innerHTML.trim();
+                    }
+
+                        // Include graph content if it exists
+                        if (graphContent) {
+                            cardData.graph = graphContent.innerHTML.trim();
+                    }
+
+                        // Only add the card if it has either numeric or graph content
+                        if (numericContent || graphContent) {
+                            rowCards.push(cardData);
+                    }
                 }
             });
-            if (rowCards.length > 0) {
-                layout.push(rowCards);
-            }
+
+                if (rowCards.length > 0) {
+                    layout.push(rowCards);
+                }
         });
 
+        console.log(layout);
         return layout;
     }
 
+
     // Function to apply loaded layout
     function applyLayout(layout) {
-        // Find the analytics section
-        const analyticsSection = document.querySelector('.analytics-section') || mainContent;
+        return
+        console.log(layout);
+
+        // Find the main content section
+        const analyticsSection = document.querySelector('.mainContent');
         if (!analyticsSection) return;
 
-        // Store the analytics title and buttons
-        const analyticsHeader = analyticsSection.querySelector('h1, .analytics-header');
-        const headerContent = analyticsHeader ? analyticsHeader.outerHTML : '';
-
-        // Clear existing content but keep the header
-        analyticsSection.innerHTML = headerContent;
+        // Clear existing content
+        analyticsSection.innerHTML = '';
 
         // Create rows and add cards
         layout.forEach(rowCards => {
@@ -192,32 +207,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'card p-3 shadow-sm';
 
-                // Special handling for different card types
-                if (cardData.type === 'Daily Report') {
-                    cardDiv.innerHTML = `
-                        <h5>${cardData.type}</h5>
-                        <div class="dropdown position-absolute top-0 end-0">
-                            <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="#">Daily</a></li>
-                                <li><a class="dropdown-item" href="#">Monthly</a></li>
-                            </ul>
-                        </div>
-                        ${cardData.content}
-                    `;
-                } else {
-                    const title = document.createElement('h5');
-                    title.className = 'card-title';
-                    title.textContent = cardData.type;
+                const title = document.createElement('h5');
+                title.className = 'card-title';
+                title.textContent = cardData.type;
 
-                    const content = document.createElement('div');
+                // Create content section if it exists
+                const content = document.createElement('div');
+                if (cardData.content) {
+                    content.classList.add('ctmText')
                     content.innerHTML = cardData.content;
-
-                    cardDiv.appendChild(title);
-                    cardDiv.appendChild(content);
                 }
+
+                // Create graph container if it exists
+                const graphContainer = document.createElement('div');
+                if (cardData.graph) {
+                    graphContainer.classList.add('graph-container'); // Add the graph-container class
+                    graphContainer.innerHTML = cardData.graph; // Set the graph content (this could be Plotly HTML)
+                }
+
+                // Append the title, content, and graph to the card
+                cardDiv.appendChild(title);
+                if (content) cardDiv.appendChild(content);
+                if (graphContainer) cardDiv.appendChild(graphContainer);
 
                 colDiv.appendChild(cardDiv);
                 row.appendChild(colDiv);
@@ -229,6 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Reinitialize any necessary event listeners or functionality
         initializeCardFunctionality();
     }
+
 
     function initializeCardFunctionality() {
         // Reinitialize any charts or interactive elements
@@ -331,6 +343,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 const draggable = document.querySelector('.dragging');
                 if (!draggable || !draggable.classList.contains('template-item')) return;
 
+                // Check if the card already exists in the row
+                const existingCards = row.querySelectorAll('.col');
+                const cardTitle = draggable.querySelector('.card-title').textContent;
+
+                const cardExists = Array.from(existingCards).some(card => {
+                    return card.querySelector('.card-title').textContent === cardTitle;
+                });
+
+                if (cardExists) {
+                    console.warn(`${cardTitle} already exists in this row.`);
+                    return; // Prevent adding the same card again
+                }
+
                 const currentCards = row.querySelectorAll('.col').length;
                 if (currentCards < 4) {
                     const newCard = createNewCard(draggable);
@@ -341,6 +366,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         row.appendChild(newCard);
                     }
                     setupDeleteIcons();
+
+                    // Call saveLayout after adding a new card
+                    saveLayout();
                 }
             });
         });
@@ -397,15 +425,31 @@ document.addEventListener("DOMContentLoaded", () => {
     // Function to create new card from template
     function createNewCard(template) {
         const colDiv = document.createElement('div');
-        colDiv.className = 'col draggable-item';
-        colDiv.draggable = true;
+        colDiv.className = 'col draggable-item width-custom';
+        colDiv.draggable = false;
 
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card p-3 shadow-sm h-100';
 
-        // Copy the inner content from the template
-        const title = template.querySelector('.card-title').cloneNode(true);
-        const content = template.querySelector('.card-title').nextElementSibling.cloneNode(true);
+        // Safely get the title and content
+        const titleElement = template.querySelector('.card-title');
+        let contentElement;
+
+        // Check if the title element exists
+        if (titleElement) {
+            const title = titleElement.cloneNode(true);
+            cardDiv.appendChild(title);
+
+            // Try to find the content element in various ways
+            contentElement = titleElement.nextElementSibling || titleElement.parentElement.querySelector('.graph-container');
+        }
+
+        if (contentElement) {
+            const content = contentElement.cloneNode(true);
+            cardDiv.appendChild(content);
+        } else {
+            console.error('Content element not found in the template');
+        }
 
         // Add delete icon
         const deleteIcon = document.createElement('i');
@@ -413,8 +457,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // Setup delete functionality for the new icon
         setupDeleteIcon(deleteIcon);
 
-        cardDiv.appendChild(title);
-        cardDiv.appendChild(content);
         cardDiv.appendChild(deleteIcon);
         colDiv.appendChild(cardDiv);
 

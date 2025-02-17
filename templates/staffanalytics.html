@@ -56,12 +56,28 @@
             <h5 class="card-title">Energy Costs</h5>
             <div class="fw-bold fs-1">${{ user_stats.energy_costs }}</div>
         </div>
+
+        <div class="card p-3 shadow-sm mb-3 template-item" draggable="true">
+            <h5 class="card-title">Energy Report</h5>
+            <div class="graph-container">{{ energy_graph | safe }}</div>
+        </div>
+
+        <div class="card p-3 shadow-sm mb-3 template-item" draggable="true">
+            <h5 class="card-title">Products Report</h5>
+            <div class="graph-container">{{ products_graph | safe }}</div>
+        </div>
+
+        <div class="card p-3 shadow-sm mb-3 template-item" draggable="true">
+            <h5 class="card-title">Profit Report</h5>
+            <div class="graph-container">{{ profit_graph | safe }}</div>
+        </div>
+
     </div>
 </div>
 
 
 
-<div class="container-fluid px-0">
+<div class="container-fluid px-0 analytics-section">
     <div class="row">
 
 
@@ -78,61 +94,57 @@
                 </div>
             </div>
 
-            <div class="row g-3 mt-3" id="cardsContainer">
-                <div class="col draggable-item" draggable="false">
-                    <div class="card p-3 shadow-sm h-100">
-                        <h5 class="card-title">Today's Earnings</h5>
-                        <div class="fw-bold fs-1">${{ user_stats.daily_sale }}</div>
-                        <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
-                    </div>
-                </div>
+            <div class="mainContent">
 
-                <div class="col draggable-item" draggable="false">
-                    <div class="card p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
-                        <h5 class="card-title">Products Sold</h5>
-                        <div class="fw-bold fs-1">{{ user_stats.products_sold }}</div>
-                        <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
-                    </div>
-                </div>
-
-                <div class="col draggable-item" draggable="false">
-                    <div class="card p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
-                        <h5 class="card-title">New Customers</h5>
-                        <div class="fw-bold fs-1">{{ user_stats.daily_customers }}</div>
-                        <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-3 mt-3">
-
-                <div class="col draggable-item" draggable="false">
-                    <div class="card p-3 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title">Daily Report</h5>
-                            <div class="dropdown">
-                                <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fa-solid fa-caret-down"></i>
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                                    <li><a class="dropdown-item" href="#">Daily</a></li>
-                                    <li><a class="dropdown-item" href="#">Monthly</a></li>
-                                </ul>
-                            </div>
+                <div class="row g-3 mt-3" id="cardsContainer">
+                    <div class="col draggable-item" draggable="false">
+                        <div class="card p-3 shadow-sm h-100">
+                            <h5 class="card-title">Today's Earnings</h5>
+                            <div class="fw-bold fs-1">${{ user_stats.daily_sale }}</div>
                             <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
                         </div>
-                        <div><iframe src="/dash/" style="width:100%; height:320px; border:none; overflow: hidden;"></iframe></div>
+                    </div>
+
+                    <div class="col draggable-item" draggable="false">
+                        <div class="card p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
+                            <h5 class="card-title">Products Sold</h5>
+                            <div class="fw-bold fs-1">{{ user_stats.products_sold }}</div>
+                            <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
+                        </div>
+                    </div>
+
+                    <div class="col draggable-item" draggable="false">
+                        <div class="card p-3 shadow-sm h-100 d-flex flex-column justify-content-between">
+                            <h5 class="card-title">New Customers</h5>
+                            <div class="fw-bold fs-1">{{ user_stats.daily_customers }}</div>
+                            <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
+                        </div>
                     </div>
                 </div>
 
-                <div class="col draggable-item" draggable="false">
-                    <div class="card p-3 shadow-sm">
-                        <h5 class="card-title">Live Feedback</h5>
-                        <div class="placeholder-box"></div>
-                        <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
-                    </div>
-                </div>
+                <div class="row g-3 mt-3">
 
+                    <div class="col draggable-item" draggable="false">
+                        <div class="card p-3 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title">Sales Report</h5>
+                                <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
+                            </div>
+                            <div class="graph-container">{{ sales_graph | safe }}</div>
+                        </div>
+                    </div>
+
+                    <div class="col draggable-item" draggable="false">
+                        <div class="card p-3 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title">Customer Report</h5>
+                                <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
+                            </div>
+                            <div class="graph-container">{{ customers_graph | safe }}</div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             <div class="row g-3 mt-3">
@@ -143,9 +155,9 @@
                         <div class="insights">
                             <p class="fw-bold">Insights and Recommendations</p>
                             <ul>
-                                {% for insight in insights %}
-                                <li>{{ insight | safe }}</li>
-                                {% endfor %}
+                              {% for i in insights %}
+                                <li>{{ i }}</li>
+                              {% endfor %}
                             </ul>
                         </div>
                         <i class="fa-regular fa-square-minus position-absolute top-0 end-0 p-2 fs-4 d-none"></i>
