@@ -24,25 +24,19 @@
         {% endfor %}
 
         <div class="col-md-4 mb-3">
-
-
             <div class="team-card"><a href="{{url_for('aboutus')}}">
                 <img src="{{ url_for('static', filename=team) }}" class="img-fluid" alt="Our Team">
-                <h5 class="mt-2">Meet Our Team</h5>       </a>
-            </div>
-
+                <h5 class="mt-2">Meet Our Team</h5>
+            </a></div>
         </div>
 
         <div class="col-md-4 mb-3">
-
             <div class="community-card"><a href="{{url_for('aboutus')}}">
                 <img src="{{ url_for('static', filename=community) }}" class="img-fluid" alt="Community Engagement">
                 <h5 class="mt-2">Community Events</h5></a>
             </div>
-
         </div>
     </div>
-
 
     <!-- Our Story Section -->
     <div class="row mt-4">
@@ -54,6 +48,20 @@
                 <h4>Our Story</h4>
                 <p>Every great journey begins with a story, and ours is one of passion, perseverance, and purpose. From humble beginnings to where we are today, we’ve built something that goes beyond products—it's about connections and experiences. Curious about what drives us? Discover the heart and soul of our journey.</p>
                 <a href="/aboutus" class="btn-link">Find out more</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Experience Video Section -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="customer-experience-video">
+                <h4>Customer Experiences</h4>
+                <p>Watch how our community comes together through shared experiences and stories. This video highlights the spirit of what we do and the impact we've made. Take a moment to see it in action!</p>
+                <video controls class="img-fluid w-100">
+                    <source src="{{ url_for('static', filename='group video.mp4') }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
             </div>
         </div>
     </div>
