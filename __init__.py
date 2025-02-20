@@ -1676,16 +1676,17 @@ def spin():
 
     today = datetime.utcnow().date()
 
-    # ✅ Check if the user has already spun the wheel today
+    # ✅ Ensure the spin does NOT reset the streak
     if user.last_wheel_spin == today:
-        return jsonify({'error': 'You have already spun the wheel today', 'points': user.points})
+        return jsonify({'error': 'You have already spun the wheel today!', 'points': user.points})
 
-    # ✅ If not, allow the user to spin
-    outcomes = [2, 3, 5, 10, 0]  # Possible point rewards
+    # ✅ Generate a random point reward
+    outcomes = [2, 3, 5, 10, 0]
     result = random.choice(outcomes)
 
+    # ✅ Update only the points, NOT the streak
     user.points += result
-    user.last_wheel_spin = today  # ✅ Store the spin date in the database
+    user.last_wheel_spin = today  # ✅ Store the last spin date separately
     db.session.commit()
 
     return jsonify({
@@ -1859,24 +1860,23 @@ def collect_points():
         return jsonify({'error': 'Points already collected today'}), 400
 
     # **NEW: Handle Streak Logic Correctly**
+    days_since_last_login = (today - user.last_login).days if user.last_login else None
+
     if user.last_login is None:
         print(f"✅ First-time login for {user.name}. Setting streak to 1.")
         user.streak = 1  # ✅ Ensure streak starts at 1
-    else:
-        days_since_last_login = (today - user.last_login).days
+    elif days_since_last_login == 1:
+        # ✅ Increase streak if logged in the next day
+        user.streak += 1
+    elif days_since_last_login > 1:
+        # ✅ Reset streak if a day is missed
+        user.streak = 1
+        streak_data = {}  # Clear past streak data
 
-        if days_since_last_login == 1:
-            # ✅ Increase streak if logged in the next day
-            user.streak += 1
-        elif days_since_last_login > 1:
-            # ✅ Reset streak if a day is missed
-            user.streak = 1
-            streak_data = {}  # Clear past streak data
-
-        # ✅ If a new week starts, reset the streak
-        if 'Sunday' in streak_data and today_name == 'Monday':
-            streak_data = {}
-            user.streak = 1
+    # ✅ If a new week starts, reset the streak
+    if 'Sunday' in streak_data and today_name == 'Monday':
+        streak_data = {}
+        user.streak = 1
 
     # ✅ Calculate Points Earned Based on Streak
     points_earned = min(user.streak * 10, 100)  # ✅ Cap at 100 points per day
@@ -1915,49 +1915,47 @@ def get_user_data():
 
     today = datetime.utcnow().date()
     is_new_user = False  # ✅ Flag to track first login
+    spun_today = user.last_wheel_spin == today  # ✅ Check if user spun the wheel today
 
     # ✅ First-Time User: Award 500 Points
     if user.last_login is None:
         print(f"🎉 First-Time User Detected: {user.name} - Awarding 500 Points!")
         user.streak = 1  # ✅ Start fresh streak
         user.points += 500  # ✅ Award 500 points
-        user.streak_data = json.dumps({})
+        user.streak_data = json.dumps({})  # ✅ Reset streak data
         is_new_user = True  # ✅ Mark user as new
 
-    # ✅ Load or reset streak data
+    # ✅ Load existing streak data
     streak_data = json.loads(user.streak_data) if user.streak_data else {}
 
     today_name = today.strftime('%A')
 
+    # ✅ Do NOT auto-assign streak data here!
+    # (We only update this when `collect_points` is pressed)
+
     # ✅ Reset streak if over 7 days
     if user.last_login and (today - user.last_login).days > 7:
-        user.streak = 1
-        streak_data = {today_name: True}
-    elif user.last_login and (today - user.last_login).days == 1:
-        user.streak += 1
-        streak_data[today_name] = True
-    elif user.last_login and (today - user.last_login).days > 1:
-        user.streak = 1
-        streak_data = {}
+        user.streak = 1  # Reset streak
+        streak_data = {}  # Clear past streaks
 
     # ✅ Reset streak on Monday if Sunday was collected
     if 'Sunday' in streak_data and today_name == 'Monday':
         streak_data = {}
 
-    # ✅ Save updates
-    user.streak_data = json.dumps(streak_data)
-    user.last_login = today
-    db.session.commit()
+    # ✅ Only update last login date (DO NOT modify streak here)
+    if user.last_login != today:
+        user.last_login = today
+        db.session.commit()
 
-    print(f"DEBUG: User {user.name} - Points: {user.points}, Streak: {user.streak}")
+    print(f"DEBUG: User {user.name} - Points: {user.points}, Streak: {user.streak}, Spun Today: {spun_today}")
 
     return jsonify({
         'points': user.points,
         'streak': user.streak,
-        'streakData': streak_data,
-        'newUser': is_new_user  # ✅ Send this to the frontend
+        'streakData': streak_data,  # ✅ Does NOT pre-mark today's streak
+        'newUser': is_new_user,
+        'spunToday': spun_today
     })
-
 
 if __name__ == '__main__':
     app.run(debug=True)
