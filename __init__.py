@@ -1425,36 +1425,34 @@ def edit_order_item(order_id):
 @app.route('/staff_dashboard')
 def staff_dashboard():
     if 'role' in session and session['role'] == 'staff':
-        accepted_orders = Order.query.filter(Order.status == "Accepted").all()
-        pending_orders_count = Order.query.filter(Order.status == "Pending").count()
-
-        notifications = pending_orders_count
-        event_revenue = 784
-        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
-
         userid = session['user_id']
         user = User.query.get_or_404(userid)
         name = user.name
         filename = user.profile_picture
 
-        # ai_response = get_ai_insights(data)
-        # insights = format_ai_insights(ai_response)
+        # ✅ Fetch pending orders count dynamically
+        pending_orders_count = Order.query.filter_by(status="Pending").count()
+
+        # ✅ Fetch accepted orders for display
+        accepted_orders = Order.query.filter(Order.status == "Accepted").all()
+
+        # ✅ Fetch revenue and low-stock items
+        event_revenue = 784  # Placeholder, replace with dynamic value if needed
+        low_stock_items = InventoryItem.query.filter(InventoryItem.stock < 10).count()
 
         return render_template(
             'staff_dashboard.html',
             accepted_orders=accepted_orders,
-            pending_orders_count=pending_orders_count,
-            notifications=notifications,
+            pending_orders_count=pending_orders_count,  # ✅ Pass dynamic count
+            notifications=pending_orders_count,  # ✅ Notifications = pending orders count
             event_revenue=event_revenue,
             low_stock_items=low_stock_items,
             name=name,
             profile_picture=filename
-            # insights=response_json['choices'][0]['message']['content']
         )
     else:
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
-
 
 @app.route('/customer_account')
 def customer_account():
@@ -1956,6 +1954,27 @@ def get_user_data():
         'newUser': is_new_user,
         'spunToday': spun_today
     })
+@app.route('/complete_order/<int:order_id>', methods=['POST'])
+def complete_order(order_id):
+    # Ensure the user is a staff member
+    if 'role' not in session or session['role'] != 'staff':
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('login'))
+
+    # Retrieve the order from the database
+    order = Order.query.get_or_404(order_id)
+
+    # Ensure the order is in the 'Accepted' state
+    if order.status != 'Accepted':
+        flash("Only accepted orders can be completed.", "warning")
+        return redirect(url_for('staff_dashboard'))
+
+    # Update the order status to 'Completed'
+    order.status = 'Completed'
+    db.session.commit()
+
+    flash(f"Order {order.id} has been marked as completed!", "success")
+    return redirect(url_for('staff_dashboard'))  # Redirect back to staff dashboard
 
 if __name__ == '__main__':
     app.run(debug=True)
