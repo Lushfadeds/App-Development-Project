@@ -276,48 +276,11 @@ def inject_user():
     return {'userid': user_id}
 
 
-def create_dash_app(app):
-    dash_app = dash.Dash(__name__, server=app, url_base_pathname='/dash/')
-
-    # Query the database for days and sales
-    with app.app_context():
-        stats = Stats.query.all()
-        days = [stat.day for stat in stats]
-        sales = [stat.daily_sale for stat in stats]
-
-    # Create the DataFrame using the queried data
-    data = pd.DataFrame({
-        'X': days,  # Day values for the X axis
-        'Y': sales,  # Sales values for the Y axis
-    })
-
-    data = data.sort_values(by="X")
-
-    # Create the figure for the line graph
-    fig = px.line(
-        data,
-        x='X',
-        y='Y',
-        labels={'X': 'Days', 'Y': 'Sales'},
-    )
-
-    fig.update_layout(height=300)
-
-    # Set the layout for the Dash app
-    dash_app.layout = html.Div([
-        dcc.Graph(id='line-graph', figure=fig)
-    ])
-
-    return dash_app
-
-
-create_dash_app(app)
-
-
 @app.route('/save_layout', methods=['POST'])
 def save_layout():
     try:
         layout_data = request.json
+        print(layout_data)  # Debugging line to check the layout data
         user_id = session.get('user_id')
 
         if not user_id:
@@ -326,9 +289,9 @@ def save_layout():
         # Get existing layout or create new one
         layout = AnalyticsLayout.query.filter_by(user_id=user_id).first()
         if not layout:
-            layout = AnalyticsLayout(user_id=user_id)
-
-        layout.layout_data = layout_data
+            layout = AnalyticsLayout(user_id=user_id, layout_data=layout_data)  # Ensure layout_data is set here
+        else:
+            layout.layout_data = layout_data  # Update existing layout data
         layout.updated_at = datetime.utcnow()
 
         db.session.add(layout)
@@ -343,41 +306,16 @@ def save_layout():
 
 @app.route('/get_layout', methods=['GET'])
 def get_layout():
-    try:
-        user_id = session.get('user_id')
+    user_id = session.get('user_id')  # Retrieve user session
+    layout_entry = AnalyticsLayout.query.filter_by(user_id=user_id).first()
 
-        if not user_id:
-            return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+    if layout_entry:
+        return jsonify({"status": "success", "layout": layout_entry.layout_data})  # Correctly return layout_data
+    return jsonify({"status": "error", "message": "No layout found"})
 
-        # Get latest stats
-        latest_stats = Stats.query.order_by(Stats.day.desc()).first()
 
-        # Get saved layout
-        layout = AnalyticsLayout.query.filter_by(user_id=user_id).first()
-
-        if layout and layout.layout_data:
-            # Update dynamic content in the layout
-            layout_data = layout.layout_data
-            for row in layout_data:
-                for card in row['cards']:
-                    if card['type'] == "Today's Earnings":
-                        card[
-                            'content'] = f'<div class="fw-bold fs-1">${latest_stats.daily_sale if latest_stats else 0}</div>'
-                    elif card['type'] == "Products Sold":
-                        card[
-                            'content'] = f'<div class="fw-bold fs-1">{latest_stats.products_sold if latest_stats else 0}</div>'
-                    elif card['type'] == "New Customers":
-                        card[
-                            'content'] = f'<div class="fw-bold fs-1">{latest_stats.daily_customers if latest_stats else 0}</div>'
-                    # Add other dynamic content updates as needed
-
-            return jsonify({'status': 'success', 'layout': layout_data})
-
-        return jsonify({'status': 'success', 'layout': None})
-    except Exception as e:
-        print(f"Error getting layout: {str(e)}")  # For debugging
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
+dash_app = dash.Dash(__name__, server=app, url_base_pathname='/dash/')
+dash_app.layout = html.Div("Loading...")
 
 @app.route('/staff_analytics')
 def staff_analytics():
@@ -387,6 +325,104 @@ def staff_analytics():
         profile_picture = user.profile_picture
         stats_data = Stats.query.filter_by(user_id=user_id).all()
         max_day_entry = Stats.query.order_by(Stats.day.desc()).first()
+
+        # Prepare data for graphs
+        days = [stat.day for stat in stats_data]
+        sales = [stat.daily_sale for stat in stats_data]
+        customers = [stat.daily_customers for stat in stats_data]
+        energy_costs = [stat.energy_costs for stat in stats_data]
+        expenses = [stat.expenses for stat in stats_data]
+        products_sold = [stat.products_sold for stat in stats_data]
+
+        profit = [sale - expense for sale, expense in zip(sales, expenses)]
+
+        # Create DataFrames for the graphs
+        sales_data = pd.DataFrame({'Day': days, 'Sales': sales})
+        customers_data = pd.DataFrame({'Day': days, 'Customers': customers})
+        energy_costs_data = pd.DataFrame({'Day': days, 'Energy Costs': energy_costs})
+        products_sold_data = pd.DataFrame({'Day': days, 'Products Sold': products_sold})
+        profit_data = pd.DataFrame({'Day': days, 'Profit': profit})
+
+        # Sort the data by day
+        sales_data = sales_data.sort_values(by="Day")
+        customers_data = customers_data.sort_values(by="Day")
+        energy_costs_data = energy_costs_data.sort_values(by="Day")
+        products_sold_data = products_sold_data.sort_values(by="Day")
+        profit_data = profit_data.sort_values(by="Day")
+
+        sales_fig = px.line(
+            sales_data,
+            x='Day',
+            y='Sales',
+            labels={'Day': 'Days', 'Sales': 'Daily Sales'}
+        )
+
+        sales_fig.update_layout(
+            height=300,
+            width=500,
+            autosize=True  # Make the graph responsive
+        )
+
+        customers_fig = px.bar(
+            customers_data,
+            x='Day',
+            y='Customers',
+            labels={'Day': 'Days', 'Customers': 'Daily Customers'}
+        )
+
+        customers_fig.update_layout(
+            height=300,
+            width=500,
+            autosize=True  # Make the graph responsive
+        )
+
+        energy_costs_fig = px.line(
+            energy_costs_data,
+            x='Day',
+            y='Energy Costs',
+            labels={'Day': 'Days', 'Energy Costs': 'Daily Energy Costs'},
+        )
+
+        energy_costs_fig.update_layout(
+            height=300,
+            width=500,
+            autosize=True  # Make the graph responsive
+        )
+
+        products_sold_fig = px.bar(
+            products_sold_data,
+            x='Day',
+            y='Products Sold',
+            labels={'Day': 'Days', 'Products Sold': 'Daily Products Sold'},
+        )
+
+        products_sold_fig.update_layout(
+            height=300,
+            width=500,
+            autosize=True  # Make the graph responsive
+        )
+
+        profit_fig = px.line(
+            profit_data,
+            x='Day',
+            y='Profit',
+            labels={'Day': 'Days', 'Profit': 'Daily Profit'},
+        )
+
+        profit_fig.update_layout(
+            height=300,
+            width=500,
+            autosize=True  # Make the graph responsive
+        )
+
+
+
+        # Generate HTML for each graph
+        sales_graph_html = sales_fig.to_html(full_html=False, config={'responsive': True})
+        customers_graph_html = customers_fig.to_html(full_html=False, config={'responsive': True})
+        energy_costs_graph_html = energy_costs_fig.to_html(full_html=False, config={'responsive': True})
+        products_sold_graph_html = products_sold_fig.to_html(full_html=False, config={'responsive': True})
+        profit_graph_html = profit_fig.to_html(full_html=False, config={'responsive': True})
 
         data = [{
             'day': stat.day,
@@ -420,8 +456,10 @@ def staff_analytics():
                         """
                     }
                 ]
-            })
+            }),
+            timeout=10
         )
+
 
         response_json = response.json()
         insights = response_json['choices'][0]['message']['content']
@@ -429,7 +467,9 @@ def staff_analytics():
         insights = insights.split('|')
 
         return render_template('staffanalytics.html', insights=insights, active_page='staffanalytics',
-                               user_stats=max_day_entry, profile_picture=profile_picture, userid=user_id)
+                               user_stats=max_day_entry, profile_picture=profile_picture, userid=user_id, sales_graph=sales_graph_html,
+                               customers_graph=customers_graph_html, energy_graph=energy_costs_graph_html, products_graph=products_sold_graph_html,
+                               profit_graph=profit_graph_html)
 
 
 
